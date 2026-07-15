@@ -50,3 +50,12 @@ scale-01:       ## chapter 1 baseline ramp: watch one lock flatten throughput
 	$(PY) -m pytest -q -s scale/tests/test_01_baseline.py
 
 check-01: scale-01      ## grade chapter 1 (passes by measuring; SLO.md is on you)
+
+check:          ## full health: lint + offline evals + the current chapter's test
+	$(PY) -m ruff check waku evals scale
+	$(PY) -m pytest -q evals/deterministic
+	@for n in 00 01 02 03 04 05 06 07 08 09 10; do \
+	  if ! git tag -l "chapter-$$n-solution" | grep -q .; then \
+	    echo "current chapter: $$n"; $(MAKE) check-$$n; exit $$?; \
+	  fi; \
+	done; echo "all tagged chapters complete"

@@ -39,9 +39,15 @@ solution is the one that teaches you. Diff them.
 
 ```bash
 git clone <your fork> && cd waku-agent && git checkout scale
-uv venv && uv pip install -e '.[eval]'
-make check-00        # instrument check: needs no API key, ever
+./scripts/session-init.sh   # env + fast checks + where you are (run every session)
+make check-00               # instrument check: needs no API key, ever
 ```
+
+Working with an AI assistant? It should read `AGENTS.md` first (Claude Code
+and most agents do this automatically). It encodes the reviewer-not-author
+rule below, the one-chapter scope, and the session lifecycle, so your agent
+behaves like a coach out of the box. Session handoffs live in
+[PROGRESS.md](PROGRESS.md); reviews use the `chapter-review` skill.
 
 Load tests run on the `sim` provider: a fake model with tunable latency
 and injected failures (see `waku/loop/sim_client.py`). No key, no cost,

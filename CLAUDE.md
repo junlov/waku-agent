@@ -1,36 +1,38 @@
-# launch-jarvis — working conventions
+# waku-agent (scale branch): working conventions
 
-Teaching repo: a local-first personal assistant demonstrating Harness, Loop,
-Memory, and Eval/LLM-Ops. The bar for every change: **readable in an afternoon**.
+**Read `AGENTS.md` first.** It is the operating manual for this branch:
+the reviewer-not-author rule, chapter scope, session lifecycle, and
+verification. This file only adds the codebase map.
 
-## Architecture map (file ↔ diagram box)
+Note for agents that read upstream history: older revisions of this file
+described the `jarvis/` layout and said to push `origin main`. Both are
+stale here. Paths are `waku/`, and the working branch is `scale`; `main`
+carries an upstream PR and is not pushed from this branch.
 
-- `jarvis/gateway/` — cli, voice (wake word), telegram. Gateways only move text.
-- `jarvis/runtime/session.py` — working memory assembly (SOUL.md + memory + history)
-- `jarvis/loop/agent.py` — THE loop; `loop/models.py` — 5 providers, 2 wire formats
-- `jarvis/tools/` — create_event / save_note / send_message (flagship task only)
-- `jarvis/memory/` — semantic (FTS5) / episodic / procedural (SKILL.md) +
-  `retrieval_gate.py` (hero 1) + `consolidation.py` (every N exchanges)
-- `jarvis/ops/` — tracing (JSONL + OTel), dashboard (localhost:7777), release_gate
-- `evals/deterministic/` (0/1, pytest) vs `evals/judge/` (DeepEval, scored) — never mix
-- Runtime state lives in `.jarvis/` (state.db, calendar.ics, outbox/, traces/) — gitignored
+## Architecture map (file to whiteboard box)
 
-## Rules
-
-- **Version control**: commit at every working milestone with a detailed message —
-  subject says what, body says WHY and what the change survived (tests, live use).
-  Push to `origin main` after committing. Use the `/ship` skill.
-- **Gate before push**: `make gate` (deterministic must pass; judge runs with a key).
-  When a live bug is found, fix it AND add a regression case to `evals/deterministic/`.
-- **No emojis** in any UI surface (dashboard, CLI output, README prose).
-- **No new dependencies without discussion** — the core is stdlib + anthropic/openai.
-  Optional features go behind extras (`[voice]`, `[telegram]`, ...).
-- **Scope**: one flagship task (scheduling). No frameworks, no multi-agent, no tool
-  sprawl. If it makes the skeleton harder to read, it goes in a fork or a sequel.
-- Providers are framed neutrally in docs (Anthropic, OpenAI, Gemini, Kimi, GLM) —
-  no ranking, no "open-source vs closed" framing.
+- `waku/gateway/`: cli, voice (wake word), telegram. Gateways only move text.
+- `waku/runtime/session.py`: working memory assembly (SOUL.md + memory + history)
+- `waku/loop/agent.py`: THE loop; `loop/models.py`: providers, two wire formats
+- `waku/loop/sim_client.py`: the fake model for load tests (scale branch)
+- `waku/tools/`: create_event / save_note / send_message (flagship task only)
+- `waku/memory/`: semantic (FTS5) / episodic / procedural (SKILL.md) +
+  `retrieval_gate.py` + `consolidation.py`
+- `waku/ops/`: tracing, dashboard (localhost:7777), release_gate
+- `scale/`: load generator + per-chapter load tests; `docs/scale/`: the curriculum
+- Runtime state lives in `.waku/` (gitignored)
 
 ## Commands
 
-`make run` · `make voice` · `make dashboard` (7777) · `make trace` (6006) ·
-`make eval` · `make gate` · `make lint` · tests live under `evals/`, not `tests/`
+`make check` (lint + offline evals + current chapter) · `make check-NN`
+(grade one chapter) · `make dashboard` · `make eval` · `make lint` ·
+`./scripts/session-init.sh` (start of every session)
+
+## Rules kept from upstream
+
+- Commit at every working milestone; subject says what, body says why and
+  what the change survived.
+- When a live bug is found, fix it AND add a regression case to
+  `evals/deterministic/`.
+- No emojis in UI surfaces. No new dependencies without discussion
+  (scale chapters may add them behind optional extras, per the spec).
