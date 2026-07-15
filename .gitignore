@@ -10,6 +10,7 @@ dist/
 .pytest_cache/
 .ruff_cache/
 .waku/
+.beads/
 .waku.bak-*/
 .jarvis.prerename-bak/
 .env.prerename-bak

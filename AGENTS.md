@@ -60,10 +60,10 @@ key.
 ## State tracking
 
 Canonical, works for everyone: git tags + `docs/scale/PROGRESS.md`.
-The maintainer additionally tracks chapters in beads (`.beads/`, `br` CLI).
-If `br` is on PATH, keep the chapter issue in sync (close on pass); if it
-is not installed, ignore `.beads/` entirely and do not recreate its
-contents anywhere else.
+The maintainer additionally tracks chapters in beads (`.beads/`, `br` CLI),
+local-only and gitignored, not synced to GitHub. If `br` is on PATH, keep
+the chapter issue in sync (close on pass); if it is not installed, ignore
+`.beads/` entirely and do not recreate its contents anywhere else.
 
 ## Reviewing a chapter
 
