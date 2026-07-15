@@ -54,7 +54,20 @@ Pick numbers you can defend. Chapter 2's test will encode them, and every
 later chapter is graded against your own contract. That is what an SLO is:
 a promise you wrote before the incident, so the incident has a scoreboard.
 
+## By the end of this chapter, you'll be able to
+
+- State an SLO as a promise made before the incident, not a number picked
+  to look good.
+- Explain why p95 (not average) is the number that exposes a serialization
+  bottleneck, and why throughput can stay flat while latency climbs.
+- Name the unit of safe concurrency this system currently lacks, and why
+  that gap is exactly what the lock is standing in for.
+
 ## Questions worth answering before chapter 2 (in your head, or to Claude)
+
+These are the questions a design review would open with, not a
+memorization test. A defensible position on each is enough to start
+drafting `SLO.md`; you do not need a complete answer before you begin.
 
 1. Why does the lock exist at all? What breaks if you just delete it?
    (Hint: `Waku.respond` mutates session history; SQLite has one writer.)
@@ -62,6 +75,25 @@ a promise you wrote before the incident, so the incident has a scoreboard.
    session, or the turn?
 3. The CLI, voice, and Telegram gateways share this same agent object.
    Which of them care about ordering?
+
+## Read before you start
+
+- `waku/ops/dashboard.py:43` (the module-level lock itself) and line 937
+  (the `ThreadingHTTPServer` that makes requests arrive concurrently in
+  the first place).
+- `scale/tests/test_01_baseline.py` and `scale/loadgen.py`: how the ramp
+  (1/2/5/10 tenants) is driven and what "turn latency" actually measures.
+- Concepts worth having cold: the difference between an SLI, an SLO, and
+  an SLA; why p95/p99 (not average) is the number that catches queuing
+  effects; Little's Law as the intuition for why throughput stays flat
+  while latency climbs behind a single serialization point.
+
+**Further reading:**
+- [Google SRE Book: Service Level Objectives](https://sre.google/sre-book/service-level-objectives/),
+  the canonical SLI/SLO/error-budget definitions.
+- [SRE Workbook: Implementing SLOs](https://sre.google/workbook/implementing-slos/)
+  and [Error Budget Policy](https://sre.google/workbook/error-budget-policy/),
+  the practical follow-through once you have picked numbers.
 
 ## Done when
 

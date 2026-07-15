@@ -31,3 +31,33 @@ a definition before the experiment, or the experiment decides nothing.
 the canary ring with a report a human can read, a genuinely fine config
 sails through, and one incident from an earlier chapter now lives in the
 deterministic suite as a regression case.
+
+## Architect prep
+
+**By the end of this chapter, you'll be able to:**
+- Explain why "the gate passes and quality craters anyway" is possible,
+  and name the gap in what the gate currently measures.
+- Define "worse" for a candidate config before an experiment runs, not
+  after looking at results.
+- Describe the difference between shadow traffic and a canary ring, and
+  what each can and cannot tell you.
+
+**Questions to settle before you draft the plan** (a design review's
+opening questions, not a memorization test; a defensible position is
+enough to start drafting):
+- Shadow vs. canary: what sample size makes the canary comparison
+  statistically meaningful given judge-model noise? Is that a number you
+  can defend before the experiment runs, per the brief's "worse needs a
+  definition before the experiment" warning?
+- Rollback trigger: automatic on SLO regression, judge-score regression,
+  or both? What threshold, and who or what owns un-blocking it afterward?
+- Feedback loop: which production turns get sampled into the
+  deterministic suite, and what privacy filter runs before they do?
+
+**Read before you start:**
+- `waku/ops/release_gate.py` (the existing gate: deterministic suite plus
+  judge suite, and what "GATE CLOSED" already means here).
+- `evals/judge/anthropic_judge.py` and `evals/dataset.jsonl` (how a judge
+  score is produced today, before you add a canary comparison on top).
+- Concepts: shadow traffic vs. canary releases; statistical significance
+  at small sample sizes; automatic rollback triggers tied to SLOs.
