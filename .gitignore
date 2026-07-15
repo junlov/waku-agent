@@ -14,3 +14,4 @@ dist/
 .jarvis.prerename-bak/
 .env.prerename-bak
 .jarvis.bak-*/
+uv.lock
