@@ -39,3 +39,14 @@ gate:           ## the release gate: deterministic must pass, judge must clear t
 
 lint:
 	$(PY) -m ruff check waku evals
+
+# ---- scale curriculum (docs/scale/README.md) --------------------------------
+scale-smoke:    ## chapter 0 instrument check: 5 sim tenants through the harness
+	$(PY) -m pytest -q -s scale/tests/test_00_smoke.py
+
+check-00: scale-smoke   ## grade chapter 0
+
+scale-01:       ## chapter 1 baseline ramp: watch one lock flatten throughput
+	$(PY) -m pytest -q -s scale/tests/test_01_baseline.py
+
+check-01: scale-01      ## grade chapter 1 (passes by measuring; SLO.md is on you)

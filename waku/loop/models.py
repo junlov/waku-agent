@@ -47,6 +47,9 @@ PROVIDERS: dict[str, Provider] = {
                           "kimi-k2.7", "kimi-k2.7"),
     "glm":       Provider("anthropic", "ZHIPU_API_KEY", "https://api.z.ai/api/anthropic",
                           "glm-5.2", "glm-5-turbo"),
+    # scale branch: a fake model for load tests and chaos drills. No key, no
+    # network; latency and failures injected via WAKU_SIM_* (see sim_client).
+    "sim":       Provider("sim", "", None, "sim-fast", "sim-fast"),
 }
 
 
@@ -57,6 +60,13 @@ def get_client(settings: Settings):
     if provider is None:
         raise SystemExit(f"Unknown WAKU_PROVIDER '{settings.provider}'. "
                          f"Pick one of: {', '.join(PROVIDERS)}")
+
+    settings.model = settings.model or provider.model
+    settings.small_model = settings.small_model or provider.small_model
+    if provider.kind == "sim":  # keyless by design
+        from waku.loop.sim_client import SimClient
+
+        return SimClient(timeout=float(os.getenv("WAKU_LLM_TIMEOUT", "120")))
 
     api_key = settings.api_key or os.getenv(provider.key_env, "")
     if not api_key:

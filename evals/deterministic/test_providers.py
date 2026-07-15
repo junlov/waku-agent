@@ -19,7 +19,8 @@ from waku.loop.models import PROVIDERS, OpenAICompatClient, get_client
 @pytest.fixture(autouse=True)
 def fake_keys(monkeypatch):
     for provider in PROVIDERS.values():
-        monkeypatch.setenv(provider.key_env, "fake-key-for-tests")
+        if provider.key_env:  # the sim provider is keyless by design
+            monkeypatch.setenv(provider.key_env, "fake-key-for-tests")
     # a stray custom-endpoint override must not leak into these checks
     monkeypatch.delenv("WAKU_API_KEY", raising=False)
     monkeypatch.delenv("WAKU_BASE_URL", raising=False)
@@ -30,14 +31,17 @@ def test_get_client_builds_the_right_wire(name):
     provider = PROVIDERS[name]
     settings = Settings(provider=name, model="", small_model="", api_key="", base_url=None)
     client = get_client(settings)
-    expected = anthropic.Anthropic if provider.kind == "anthropic" else OpenAICompatClient
+    from waku.loop.sim_client import SimClient
+
+    expected = {"anthropic": anthropic.Anthropic, "openai": OpenAICompatClient,
+                "sim": SimClient}[provider.kind]
     assert isinstance(client, expected)
     # defaults must be filled in so the loop never sends model=""
     assert settings.model == provider.model
     assert settings.small_model == provider.small_model
 
 
-@pytest.mark.parametrize("name", list(PROVIDERS))
+@pytest.mark.parametrize("name", [n for n, p in PROVIDERS.items() if p.kind != "sim"])
 def test_missing_key_exits_with_the_key_name(name, monkeypatch):
     monkeypatch.delenv(PROVIDERS[name].key_env, raising=False)
     settings = Settings(provider=name, model="", small_model="", api_key="", base_url=None)
