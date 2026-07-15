@@ -35,18 +35,20 @@ brief in one paragraph.
 |---|---------|--------------|
 | 0 | [The harness](00-harness.md) | nothing: this builds the instruments |
 | 1 | [Baseline & SLOs](01-baseline-slos.md) | nothing yet: this measures honestly |
-| 2 | Concurrency | one global lock serializing every user |
-| 3 | Multi-tenancy | every user sharing one brain and one memory |
-| 4 | Durable state | SQLite tapping out; queries that read whole tables |
-| 5 | Queueing & backpressure | meltdown under burst instead of graceful shedding |
-| 6 | Provider reliability | one flaky upstream taking down every turn |
-| 7 | Cost & abuse control | one hot tenant spending everyone's budget |
-| 8 | Observability | debugging by vibes |
-| 9 | Horizontal scale & deploy | the process that cannot be two processes |
-| 10 | Evals at scale | shipping regressions to 100% of traffic |
+| 2 | [Concurrency](02-concurrency.md) | one global lock serializing every user |
+| 3 | [Multi-tenancy](03-multi-tenancy.md) | every user sharing one brain and one memory |
+| 4 | [Durable state](04-durable-state.md) | SQLite tapping out; queries that read whole tables |
+| 5 | [Queueing & backpressure](05-queueing-backpressure.md) | meltdown under burst instead of graceful shedding |
+| 6 | [Provider reliability](06-provider-reliability.md) | one flaky upstream taking down every turn |
+| 7 | [Cost & abuse control](07-cost-abuse.md) | one hot tenant spending everyone's budget |
+| 8 | [Observability](08-observability.md) | debugging by vibes |
+| 9 | [Horizontal scale & deploy](09-horizontal-deploy.md) | the process that cannot be two processes |
+| 10 | [Evals at scale](10-evals-at-scale.md) | shipping regressions to 100% of traffic |
 
 Chapters 2 and 3 are the heart of "thousands of users". Chapters 4 to 7 are
 the professional middle. Chapters 8 to 10 are polish; defer them freely.
 
-Briefs for chapters 2+ are written when you get there, so each one can
-react to how you actually solved the previous chapter.
+Chapters 2 to 10 carry short briefs now (the scar, the reproduction, the
+shape of the fix, done-when). Each gets expanded into its full assignment,
+with the failing load test, when you reach it, so it can react to how you
+actually solved the chapter before.
