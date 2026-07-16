@@ -53,26 +53,36 @@ to see how differently the same technical fixes get justified.
 
 1. **Read the brief** (`docs/scale/NN-*.md`): the concept, and the failure
    you are about to reproduce.
-2. **Start from the chapter's start tag** so everyone begins from the same
-   known-good state, whatever happened in your previous chapter:
-   `git checkout chapter-NN-start -b my-chapter-NN`
+2. **Record your learner baseline** while staying on `scale`:
+   `python scripts/curriculum.py begin NN`. This creates a learner-owned tag
+   at the current clean commit. Do not check out an old reference tag during
+   the normal run; older tags may predate improvements to the teaching harness.
 3. **Run the failing test and watch it melt**: `make scale-NN` runs the
    load, `make dashboard` in another terminal shows the meltdown live.
 4. **Fix it.** The test encodes the chapter's SLO; `make check-NN` is the
    grade. No instructor in the loop: green inside SLO means done.
-5. **Compare**: `git diff chapter-NN-solution` shows the reference fix.
-   Stuck is allowed; the next chapter's start tag IS the reference
-   solution, so you can always move on and come back.
+5. **Finish honestly**: update `PROGRESS.md`, commit the result, then run
+   `python scripts/curriculum.py complete NN`. It reruns the check and records
+   the pass. A review uses `git diff learner/chapter-NN-start`.
+6. **Compare only after your attempt**: `git diff chapter-NN-solution` shows
+   the maintainer's reference fix. Stuck is allowed, but looking early trades
+   away the lesson.
 
 ## Tags
 
 | Tag | Meaning |
 |-----|---------|
-| `chapter-NN-start` | the exact code a chapter begins from |
-| `chapter-NN-solution` | the reference fix (identical to `chapter-NN+1-start`) |
+| `chapter-NN-start` | published code baseline; also means the chapter is runnable |
+| `chapter-NN-solution` | maintainer's reference fix |
+| `learner/chapter-NN-start` | this learner's clean review baseline |
+| `learner/chapter-NN-passed` | this learner passed the real check |
 
 Reference solutions exist so the curriculum is reproducible; your own
 solution is the one that teaches you. Diff them.
+
+The state tool deliberately ignores reference-solution tags when deciding
+whether you passed. A cloned repository can contain every reference without
+claiming that the learner completed anything.
 
 ## Setup
 
@@ -105,6 +115,11 @@ not you. (Corollary: pasting the failing test output and asking "why" is
 great; pasting the brief and asking "implement this" defeats the repo.)
 
 ## Curriculum
+
+**Runnable now:** chapters 0 and 1. Chapters 2 through 10 already have briefs
+and track-specific preparation, but their load tests and `make check-NN`
+targets are added as the curriculum reaches them. The startup command will not
+advance into a chapter until its `chapter-NN-start` tag exists.
 
 | # | Chapter | You will fix | Check |
 |---|---------|--------------|-------|

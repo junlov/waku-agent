@@ -48,8 +48,8 @@ of re-deriving the same questions and reading list from scratch.
 
 ## Scope: one chapter at a time
 
-The current chapter is the lowest-numbered one without a green
-`make check-NN`. Code outside that chapter's blast radius is read-only,
+The current chapter is the lowest authored chapter without learner-owned pass
+evidence (`python scripts/curriculum.py current`). Code outside that chapter's blast radius is read-only,
 even when you can see chapter 5's problem from chapter 2. Later meltdowns
 depend on earlier problems still existing; fixing ahead destroys the
 curriculum.
@@ -69,12 +69,16 @@ curriculum.
 ## Session lifecycle
 
 - **Start:** run `./scripts/session-init.sh`. It verifies the environment,
-  runs the fast checks, and prints the current chapter and last handoff.
+  runs the fast checks, and prints the current chapter and last handoff. Before
+  changing a chapter, commit any harness work and run
+  `python scripts/curriculum.py begin NN` to record the review baseline.
 - **End:** append a handoff entry to `docs/scale/PROGRESS.md` (format at
   the top of that file), commit clean (never leave the tree dirty), and
   keep the working branch `scale` (never push `main`).
-- Chapter completion: tag `chapter-NN-solution`, and the same commit is
-  `chapter-NN+1-start`.
+- Chapter completion: after the handoff and solution are committed, run
+  `python scripts/curriculum.py complete NN`. It reruns `make check-NN` and
+  records `learner/chapter-NN-passed` without confusing that evidence with
+  the maintainer's reference-solution tags.
 
 ## Verification
 
@@ -85,7 +89,10 @@ key.
 
 ## State tracking
 
-Canonical, works for everyone: git tags + `docs/scale/PROGRESS.md`.
+Canonical, works for everyone: learner-owned git tags +
+`docs/scale/PROGRESS.md`. `chapter-NN-start` and `chapter-NN-solution` are
+published curriculum/reference points; `learner/chapter-NN-start` and
+`learner/chapter-NN-passed` record this checkout's actual run.
 The maintainer additionally tracks chapters in beads (`.beads/`, `br` CLI),
 local-only and gitignored, not synced to GitHub. If `br` is on PATH, keep
 the chapter issue in sync (close on pass); if it is not installed, ignore
@@ -93,6 +100,7 @@ the chapter issue in sync (close on pass); if it is not installed, ignore
 
 ## Reviewing a chapter
 
-Use the `chapter-review` skill (`.claude/skills/chapter-review/SKILL.md`;
-non-Claude agents: read that file and follow it as a prompt). It grades a
-diff against the brief without leaking the reference solution.
+Use the `chapter-review` skill. Portable copies live under both
+`.claude/skills/` and `.agents/skills/`, and the harness test requires them to
+stay identical. It grades a diff against the brief without leaking the
+reference solution.

@@ -8,7 +8,7 @@
 # `source .venv/bin/activate` — both work, this is just fewer steps.
 PY := $(shell [ -x .venv/bin/python ] && echo .venv/bin/python || echo python)
 
-.PHONY: run voice telegram brief dashboard trace eval eval-judge gate lint
+.PHONY: run voice telegram brief dashboard trace eval eval-judge gate lint harness-test
 
 run:            ## chat with Waku in the terminal
 	$(PY) -m waku
@@ -38,7 +38,10 @@ gate:           ## the release gate: deterministic must pass, judge must clear t
 	$(PY) -m waku.ops.release_gate
 
 lint:
-	$(PY) -m ruff check waku evals
+	$(PY) -m ruff check waku evals scale scripts
+
+harness-test:   ## fast tests for curriculum state and written-artifact gates
+	$(PY) -m pytest -q scale/tests/test_curriculum_harness.py
 
 # ---- scale curriculum (docs/scale/README.md) --------------------------------
 scale-smoke:    ## chapter 0 instrument check: 5 sim tenants through the harness
@@ -49,13 +52,16 @@ check-00: scale-smoke   ## grade chapter 0
 scale-01:       ## chapter 1 baseline ramp: watch one lock flatten throughput
 	$(PY) -m pytest -q -s scale/tests/test_01_baseline.py
 
-check-01: scale-01      ## grade chapter 1 (passes by measuring; SLO.md is on you)
+check-01: scale-01      ## grade chapter 1: measurement plus the learner's SLO contract
+	$(PY) scripts/curriculum.py validate 01
 
 check:          ## full health: lint + offline evals + the current chapter's test
-	$(PY) -m ruff check waku evals scale
+	$(PY) -m ruff check waku evals scale scripts
 	$(PY) -m pytest -q evals/deterministic
-	@for n in 00 01 02 03 04 05 06 07 08 09 10; do \
-	  if ! git tag -l "chapter-$$n-solution" | grep -q .; then \
-	    echo "current chapter: $$n"; $(MAKE) check-$$n; exit $$?; \
-	  fi; \
-	done; echo "all tagged chapters complete"
+	$(PY) -m pytest -q scale/tests/test_curriculum_harness.py
+	@current="$$($(PY) scripts/curriculum.py current --number)"; \
+	if [ -n "$$current" ]; then \
+	  echo "current chapter: $$current"; $(MAKE) check-$$current; \
+	else \
+	  $(PY) scripts/curriculum.py current; \
+	fi

@@ -18,6 +18,15 @@ a perfect entry. Marketing copy about progress is not.
 
 ---
 
+## 2026-07-16 / chapter 1 / exploring (harness repaired)
+- Did: rebuilt the migrated `.venv`; separated learner progress from reference
+  tags; added begin/complete state commands, SLO artifact checks, portable
+  cross-agent skills, and harness regression tests. Chapter 0 is green again.
+- Learned: the copied venv contained an absolute Python symlink from the old
+  profile, and published solution tags could falsely advance learner progress.
+- Next: review and commit the harness patch, run
+  `python scripts/curriculum.py begin 01`, then start the Chapter 1 baseline.
+
 ## 2026-07-15 / chapter 0 / passed (chapter 1 armed)
 - Did: harness built (sim provider, loadgen, conftest server fixture,
   check-00/check-01 targets). check-00 green: 15/15 turns, 0 errors.

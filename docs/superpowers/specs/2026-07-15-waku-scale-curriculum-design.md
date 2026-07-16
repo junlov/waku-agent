@@ -42,9 +42,11 @@ professionally. Success is understanding earned by fixing, not by reading.
   2. `scale/tests/test_NN_*.py`: a load test that FAILS on the pre-chapter
      code. Written by Claude. Committed failing, with the failure output
      quoted in the brief.
-  3. Fix commits by the learner (reviewed, iterated).
-  4. Tag `chapter-NN-done` when the load test passes inside SLO, so any
-     chapter can be diffed against the simple version.
+  3. Fix commits by the learner (reviewed, iterated), diffed from a local
+     `learner/chapter-NN-start` tag.
+  4. Tag `learner/chapter-NN-passed` when the load test passes inside SLO.
+     Published `chapter-NN-solution` tags remain reference answers and never
+     count as evidence that a learner passed.
 - Progress tracked in beads (`.beads/` store on this branch): one epic,
   one issue per chapter.
 
