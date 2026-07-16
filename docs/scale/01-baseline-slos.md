@@ -9,6 +9,10 @@ Two tracks exist for the prep work below: `tracks/01-baseline-slos-ai-engineer.m
 `tracks/01-baseline-slos-architect.md` (commit to defensible numbers). Pick
 the one that matches what you are practicing, or read both.
 
+**Before you draft `SLO.md`, read `PRODUCT-SCENARIO.md` and write
+`docs/scale/SCENARIO.md`.** A p95 target is not defensible in the abstract;
+it's defensible against a specific promise to a specific kind of tenant.
+
 ## The failure you are about to reproduce
 
 You already lived it once. When a qwen model hung mid-turn earlier in this

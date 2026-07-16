@@ -35,6 +35,20 @@ is a standalone framework for noticing which discipline's mental model a
 given question actually needs, worth reading once before chapter 1 and
 re-checking whenever a question feels easier than it should.
 
+## Before chapter 1: pick a product scenario
+
+The chapter briefs never say who these tenants are or what you promised
+them, on purpose. [`PRODUCT-SCENARIO.md`](PRODUCT-SCENARIO.md) is where
+you fix that once, deliberately, before drafting chapter 1's `SLO.md`:
+pick an archetype (consumer freemium, embedded B2B, internal tool,
+regulated vertical, or your own), write it into `docs/scale/SCENARIO.md`,
+and commit it alongside your SLOs. Every later chapter's product-shaped
+question (chapter 3's isolation model, chapter 5's shedding order,
+chapter 7's budget policy) should trace back to that choice rather than
+being decided fresh each time. It's a judgment call, not code, so nothing
+stops you from re-running the curriculum under a different scenario later
+to see how differently the same technical fixes get justified.
+
 ## How a chapter works
 
 1. **Read the brief** (`docs/scale/NN-*.md`): the concept, and the failure

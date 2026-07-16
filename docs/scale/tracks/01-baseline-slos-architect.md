@@ -1,7 +1,10 @@
 # Chapter 1 architect track: baseline and SLOs
 
 Companion to `docs/scale/01-baseline-slos.md`. Read that brief first for
-the failure, the run command, and the deliverable shape.
+the failure, the run command, and the deliverable shape. Read
+`docs/scale/PRODUCT-SCENARIO.md` and write `docs/scale/SCENARIO.md`
+before drafting `SLO.md`: the questions below are easier to answer with a
+concrete tenant in mind than in the abstract.
 
 ## By the end of this chapter, you'll be able to
 

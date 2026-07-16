@@ -26,7 +26,10 @@ defensible position is enough to start drafting.
   table, or hardcoded per call site? Does this interact with chapter 6's
   fallback chains, or run independently of them?
 - What is the over-budget UX contract: the same 429-shaped pattern as
-  chapter 5, or does cost need its own signal to the user?
+  chapter 5, or does cost need its own signal to the user? Reread
+  `docs/scale/SCENARIO.md`: a consumer-freemium tenant getting cut off
+  and a B2B tenant with a contract getting cut off are different
+  conversations.
 
 ## Orient yourself on
 

@@ -24,7 +24,9 @@ defensible position is enough to start drafting.
   one layer up the stack.
 - Admission-rejection contract: reject-fast with 429 always, or load-shed
   by tenant class (paying vs. free)? Does chapter 3 give you the tenant
-  class needed to shed by, or does that come later?
+  class needed to shed by, or does that come later? `docs/scale/SCENARIO.md`
+  should already say which tier gets protected first; this is where that
+  promise gets tested under load.
 - How do you size queue depth: is it literally your chapter 1 SLO math
   inverted, or a separate empirical tuning pass against real burst shape?
 

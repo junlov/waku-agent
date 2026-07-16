@@ -62,6 +62,7 @@ curriculum.
 | the design decisions | `docs/superpowers/specs/2026-07-15-waku-scale-curriculum-design.md` |
 | the current assignment | `docs/scale/NN-*.md` for the current chapter, plus its `docs/scale/tracks/NN-*-architect.md` / `-ai-engineer.md` companions (chapters 1-10) |
 | when a question is not really an engineering question | `docs/scale/DECISION-LENSES.md` |
+| who these tenants are and what was promised to them | `docs/scale/PRODUCT-SCENARIO.md`, then the user's own `docs/scale/SCENARIO.md` |
 | what happened last session | `docs/scale/PROGRESS.md` (newest entry first) |
 | how the app itself works | upstream map in `CLAUDE.md`, then the file the brief points at |
 

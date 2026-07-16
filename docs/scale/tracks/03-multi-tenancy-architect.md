@@ -24,7 +24,9 @@ defensible position is enough to start drafting.
 - SOUL.md and skills are global today. Shared across tenants, or
   per-tenant? That is a product decision, not just an engineering one:
   what does each choice imply for chapter 8's dashboard and chapter 7's
-  cost attribution?
+  cost attribution? Check `docs/scale/SCENARIO.md` before answering: a
+  consumer-freemium assistant and an embedded B2B tool likely answer this
+  differently.
 - Per-tenant rate limits: enforced at admission (chapter 5's territory)
   or inside the chapter 2 worker pool? Does "degrades only their own p95"
   require active isolation, or does fair scheduling alone get you there?
