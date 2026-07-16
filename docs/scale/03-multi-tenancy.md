@@ -1,5 +1,10 @@
 # Chapter 3: multi-tenancy (short brief; expanded when you start it)
 
+Two tracks exist for the prep work: `tracks/03-multi-tenancy-ai-engineer.md`
+(build the fix) and `tracks/03-multi-tenancy-architect.md` (decide the
+shape of the fix). Pick the one that matches what you are practicing, or
+read both, in that order.
+
 **The scar:** today every gateway shares ONE brain: one `.waku` home, one
 memory, one calendar. Two users of the same deployment are one user with
 two faces. Tenant A asks "when is my dentist appointment" and gets tenant
@@ -26,42 +31,3 @@ boundaries were clean.
 **Done when:** zero leaks at 100 tenants, one abusive tenant (scripted
 flood) degrades only their own p95, and you can say where tenant identity
 lives and why.
-
-## Architect prep
-
-**By the end of this chapter, you'll be able to:**
-- Explain why "wrong beats slow" for trust, and where in this codebase
-  that risk currently lives (no `tenant_id` anywhere).
-- Name the tenant isolation model (silo, pool, or bridge) you are
-  choosing and why, not just that "tenants should be isolated."
-- Describe the difference between a data leak and a noisy-neighbor
-  problem, and why this chapter has to solve both.
-
-**Questions to settle before you draft the plan** (a design review's
-opening questions, not a memorization test; a defensible position is
-enough to start drafting):
-- Where does tenant identity live: a request-boundary auth token only, or
-  an explicit parameter threaded through every store and service call?
-  What is the cost of getting this wrong (a single missed thread-through
-  is the leak the brief describes)?
-- SOUL.md and skills are global today. Shared across tenants, or
-  per-tenant? That is a product decision, not just an engineering one:
-  what does each choice imply for chapter 8's dashboard and chapter 7's
-  cost attribution?
-- Per-tenant rate limits: enforced at admission (chapter 5's territory)
-  or inside the chapter 2 worker pool? Does "degrades only their own p95"
-  require active isolation, or does fair scheduling alone get you there?
-
-**Read before you start:**
-- `waku/db.py` (the `SCHEMA`: note there is no `tenant_id` column
-  anywhere yet) and `waku/memory/semantic/store.py`.
-- `waku/runtime/session.py` (how SOUL.md, memory, and history get
-  assembled into one working-memory blob per turn).
-- Concepts: multi-tenancy isolation models (silo vs. pool vs. bridge);
-  row-level security as a pattern, even without a real RLS engine here;
-  the "noisy neighbor" problem.
-
-**Further reading:**
-- [AWS SaaS Tenant Isolation Strategies](https://docs.aws.amazon.com/whitepapers/latest/saas-tenant-isolation-strategies/saas-tenant-isolation-strategies.html),
-  the silo/pool/bridge vocabulary this chapter's brief is built on.
-- [AWS SaaS Architecture Fundamentals: Tenant Isolation](https://docs.aws.amazon.com/whitepapers/latest/saas-architecture-fundamentals/tenant-isolation.html).

@@ -10,6 +10,31 @@ Project: written lessons first, checkable completion, no instructor
 required. (There is also a video series of the original learner going
 through it; the writing stands alone.)
 
+## Two tracks per chapter
+
+Each chapter's brief (`docs/scale/NN-*.md`) covers the shared context: the
+scar, how to reproduce it, the fix's shape, and the done-when criteria.
+Beyond that, chapters 1 through 10 split into two companion files under
+`docs/scale/tracks/`:
+
+- `NN-*-architect.md`: learning outcomes, the design questions to settle
+  before drafting a plan, and reading aimed at the tradeoff space.
+- `NN-*-ai-engineer.md`: learning outcomes, a concrete build checklist,
+  and reading aimed at the implementation itself.
+
+Read the architect track first if you are practicing solution-architecture
+and planning skill rather than hands-on coding: its decisions (where does
+state live, what is the unit of concurrency) are inputs the engineer
+track's checklist depends on. Read only the engineer track if you are
+here to write the fix yourself and already know the shape you want.
+
+Several of the architect track's questions are not engineering questions
+at all, they are product, security, cost, or incident-response judgment
+wearing an engineering costume. [`DECISION-LENSES.md`](DECISION-LENSES.md)
+is a standalone framework for noticing which discipline's mental model a
+given question actually needs, worth reading once before chapter 1 and
+re-checking whenever a question feels easier than it should.
+
 ## How a chapter works
 
 1. **Read the brief** (`docs/scale/NN-*.md`): the concept, and the failure

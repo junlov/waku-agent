@@ -1,5 +1,10 @@
 # Chapter 8: observability (short brief; expanded when you start it)
 
+Two tracks exist for the prep work: `tracks/08-observability-ai-engineer.md`
+(build the fix) and `tracks/08-observability-architect.md` (decide the
+shape of the fix). Pick the one that matches what you are practicing, or
+read both, in that order.
+
 **The scar:** something is wrong for 2% of tenants and you cannot say
 which two percent, or why, or since when. Debugging by vibes works at one
 user because you ARE the user. At a thousand, telemetry is the only pair
@@ -28,42 +33,3 @@ latency hides.
 **Done when:** you locate three consecutive injected faults in under ten
 minutes each, from telemetry alone, and one alert fired before you
 started looking.
-
-## Architect prep
-
-**By the end of this chapter, you'll be able to:**
-- Explain the cardinality tradeoff between per-tenant and per-class
-  metrics, and where your own line falls.
-- Justify a privacy policy for logging chat content before writing any
-  logging code.
-- Name the layer you would instrument first and defend why, rather than
-  instrumenting everything at once.
-
-**Questions to settle before you draft the plan** (a design review's
-opening questions, not a memorization test; a defensible position is
-enough to start drafting):
-- Cardinality tradeoff: per-tenant logs but per-class metrics is the
-  brief's suggested compromise. Where is your actual line, and what
-  breaks it (100 tenants vs. 100k)?
-- Logging chat content: what is the privacy policy, and does it differ
-  between structured logs and OTel span attributes?
-- Which layer gets instrumented first: the chapter 5 queue, since
-  "that's where latency hides"? What is your evidence that is the right
-  starting point versus, say, the model call itself?
-
-**Read before you start:**
-- `waku/ops/tracing.py` (existing span/trace machinery and the Phoenix
-  OTel export path already wired behind `make trace`).
-- `waku/ops/dashboard.py:205` (`collect()`, today's only aggregation
-  point, and its likely successor for RED metrics).
-- Concepts: RED metrics (rate, errors, duration); metric cardinality
-  and its cost at scale; structured logging with correlation ids
-  (tenant/session/turn) as the grep-able baseline.
-
-**Further reading:**
-- [Grafana Labs: The RED Method](https://grafana.com/blog/the-red-method-how-to-instrument-your-services/)
-  by Tom Wilkie, the rate/errors/duration framing this brief uses
-  directly.
-- [Brendan Gregg: The USE Method](https://www.brendangregg.com/usemethod.html),
-  the infrastructure-side complement (utilization/saturation/errors) for
-  anything below the service layer.

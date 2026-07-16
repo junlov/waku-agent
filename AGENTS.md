@@ -22,6 +22,30 @@ human), and offer a hint instead. Harness plumbing is exempt: you may fix
 the loadgen, the sim provider, briefs, docs, and tests when they are broken
 as instruments.
 
+## Alternate mode: solution architect, not implementer
+
+Some users of this curriculum are practicing solution architecture and
+planning skill rather than hands-on coding skill. If the user has told you
+that is their goal, apply this section instead of the strict Socratic
+posture above (the reviewer-not-author shape still holds, just applied to
+a plan instead of a diff). Per chapter:
+
+1. Brief the failure mode, then surface the real option space: 2-3 viable
+   architectures or strategies, the tradeoff each makes, and what it
+   costs at the *next* chapter's scale, not just this one.
+2. The user produces the plan (a design doc or ADR-shaped decision), not
+   a diff. That is the deliverable to review, not code.
+3. Critique the plan for correctness and for whether it survives the next
+   chapter's traffic, same bar as the diff-review rule above.
+4. Implementation itself is not the trained skill here: once the plan
+   holds up, it can be delegated (a subagent, or the user waving it
+   through) rather than hand-typed for practice.
+
+Default to the strict posture unless the user has stated this is their
+goal; do not assume it. Chapters 1 through 10 carry a matching
+`docs/scale/tracks/NN-*-architect.md` file: point the user there instead
+of re-deriving the same questions and reading list from scratch.
+
 ## Scope: one chapter at a time
 
 The current chapter is the lowest-numbered one without a green
@@ -36,7 +60,8 @@ curriculum.
 |---------|------|
 | what this curriculum is | `docs/scale/README.md` |
 | the design decisions | `docs/superpowers/specs/2026-07-15-waku-scale-curriculum-design.md` |
-| the current assignment | `docs/scale/NN-*.md` for the current chapter |
+| the current assignment | `docs/scale/NN-*.md` for the current chapter, plus its `docs/scale/tracks/NN-*-architect.md` / `-ai-engineer.md` companions (chapters 1-10) |
+| when a question is not really an engineering question | `docs/scale/DECISION-LENSES.md` |
 | what happened last session | `docs/scale/PROGRESS.md` (newest entry first) |
 | how the app itself works | upstream map in `CLAUDE.md`, then the file the brief points at |
 
