@@ -48,3 +48,22 @@ drafting `SLO.md`; you do not need a complete answer before you begin.
 - [SRE Workbook: Implementing SLOs](https://sre.google/workbook/implementing-slos/)
   and [Error Budget Policy](https://sre.google/workbook/error-budget-policy/),
   the practical follow-through once you have picked numbers.
+
+**If you're stuck on an actual number**, these are more direct than the
+canonical references above:
+
+- [Nielsen Norman Group: Response Time Limits](https://www.nngroup.com/articles/response-times-3-important-limits/),
+  the classic 0.1s/1s/10s thresholds for perceived performance. 1 second
+  is the ceiling before a user's train of thought breaks, a concrete
+  anchor for a "feels like ChatGPT/Siri" consumer chat product. Past 10
+  seconds you need to actively show progress or the user assumes it's
+  broken; that's an outer bound, not a target.
+- [Google Cloud: A practical guide to setting SLOs](https://cloud.google.com/blog/products/management-tools/practical-guide-to-setting-slos)
+  and [Last9: A practical guide to implementing SLOs](https://last9.io/blog/a-practical-guide-to-implementing-slos/).
+  Core move in both: measure current performance first (you already have
+  this, from the chapter 1 baseline), then set the target tighter than
+  your worst recent number but looser than your best, rather than
+  picking an aspirational round figure like "99.9% because everyone
+  does." Your 100- and 500-tenant targets should extrapolate from your
+  actual measured baseline plus the Nielsen threshold above, not appear
+  from nowhere.
