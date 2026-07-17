@@ -23,6 +23,11 @@ fast while the upstream is down, and a fallback chain: primary model, then
 alternate, then an honest "degraded, try again" answer. The sim provider
 made this testable; the PROVIDERS seam makes it configurable.
 
+Keep retry layers distinct: model-output correction, provider transport,
+single-activity execution, and whole-workflow recovery have different owners,
+budgets, and side-effect risks. A retry at one layer must not silently multiply
+another layer's attempts.
+
 **Traps ahead:** which errors are retryable is judgment (429 yes, invalid
 request no, timeout maybe-once); retrying a turn that already wrote to
 memory needs idempotency thinking; fallback models answer differently, so

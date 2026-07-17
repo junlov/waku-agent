@@ -21,6 +21,11 @@ a turn that has already blown its deadline in the queue should never reach
 the model. Load shedding by class if you want the extra credit: paying
 tenants queue, free tenants shed first.
 
+If admitted work can outlive its request, enqueue a small versioned command
+with a durable command id, tenant scope, deadline, and artifact references.
+Define claim, expiry, deduplication, and terminal-result ownership now; Chapter
+16 will crash workers between each of those boundaries.
+
 **Traps ahead:** where the queue lives matters (per worker? global?
 per tenant, feeding chapter 3's fairness?); rejecting is a UX decision, so
 the dashboard chat needs to render a 429 as "busy, retry in Ns" rather

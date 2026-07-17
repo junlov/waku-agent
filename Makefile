@@ -8,7 +8,7 @@
 # `source .venv/bin/activate` — both work, this is just fewer steps.
 PY := $(shell [ -x .venv/bin/python ] && echo .venv/bin/python || echo python)
 
-.PHONY: run voice telegram brief dashboard trace eval eval-judge gate lint harness-test
+.PHONY: run voice telegram brief dashboard docker-dashboard docker-reset-workspace docker-clean trace eval eval-judge gate lint harness-test frontend-install frontend-build frontend-check
 
 run:            ## chat with Waku in the terminal
 	$(PY) -m waku
@@ -24,6 +24,35 @@ brief:          ## morning briefing from calendar + mail + memory
 
 dashboard:      ## everything on one page — http://localhost:7777
 	$(PY) -m waku.ops.dashboard
+
+frontend-install: ## install the pinned Factory UI dependency
+	pnpm --dir frontend install --frozen-lockfile
+
+frontend-build:  ## compile the Factory-backed curriculum adapter
+	pnpm --dir frontend build
+
+frontend-check:  ## typecheck and rebuild the curriculum adapter
+	pnpm --dir frontend typecheck
+	pnpm --dir frontend build
+
+docker-dashboard: ## self-healing sandbox — mutable workspace + SQLite survive container recreation
+	docker build -t waku-agent-training:local .
+	docker volume create waku-training-data >/dev/null
+	docker volume create waku-training-workspace >/dev/null
+	-docker network create waku-integrations >/dev/null 2>&1
+	docker run --rm --name waku-training -p 127.0.0.1:7777:7777 \
+		--read-only --cap-drop=ALL --security-opt=no-new-privileges \
+		--network waku-integrations --add-host host.docker.internal:host-gateway \
+		--mount type=volume,src=waku-training-workspace,dst=/workspace \
+		--mount type=volume,src=waku-training-data,dst=/var/lib/waku \
+		waku-agent-training:local
+
+docker-reset-workspace: ## destructive recovery: delete only sandbox code; SQLite and keys survive
+	- docker rm -f waku-training
+	docker volume rm waku-training-workspace
+
+docker-clean:   ## remove image; both data and mutable workspace volumes are preserved
+	docker image rm waku-agent-training:local
 
 trace:          ## deep trace waterfalls (Phoenix) at http://localhost:6006
 	$(PY) -m phoenix.server.main serve

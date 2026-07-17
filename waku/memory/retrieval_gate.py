@@ -16,8 +16,7 @@ a small model making one narrow decision.
 from __future__ import annotations
 
 import json
-
-import anthropic
+from typing import Any
 
 GATE_PROMPT = """\
 You are a retrieval gate for a personal assistant's long-term memory.
@@ -34,7 +33,7 @@ User message: {message}"""
 
 
 def should_retrieve(
-    client: anthropic.Anthropic, small_model: str, message: str
+    client: Any, small_model: str, message: str
 ) -> tuple[bool, str, str]:
     """Returns (retrieve?, search_query, reason). Fails open: if the gate
     itself errors, we retrieve — a stale memory beats a lost one."""

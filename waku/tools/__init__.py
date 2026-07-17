@@ -8,12 +8,12 @@ import os
 import sqlite3
 
 from waku.config import Settings
-from waku.tools import calendar, memory_admin, messages, notes, search
+from waku.tools import calendar, curriculum, memory_admin, messages, notes, search
 from waku.tools.registry import ToolRegistry
 
 
-def build_registry(conn: sqlite3.Connection, settings: Settings, memory=None) -> ToolRegistry:
-    registry = ToolRegistry()
+def build_registry(conn: sqlite3.Connection, settings: Settings, memory=None, recorder=None) -> ToolRegistry:
+    registry = ToolRegistry(recorder=recorder)
     registry.register(calendar.make_tool(conn, settings.home, apple_calendar=settings.apple_calendar))
     registry.register(calendar.make_list_tool(conn))   # read side: "what's on my calendar?"
     registry.register(notes.make_tool(conn))
@@ -21,6 +21,22 @@ def build_registry(conn: sqlite3.Connection, settings: Settings, memory=None) ->
     # Web search — pairs with create_event for the multi-tool loop demo
     # ("find the World Cup games left and add them to my calendar").
     registry.register(search.make_tool())
+    registry.register(curriculum.make_tool())
+
+    # Full shell authority belongs to the container boundary, never a normal
+    # host-side Waku process. Docker supplies a persistent mutable workspace and
+    # an immutable seed checkout when this flag is enabled.
+    if os.getenv("WAKU_SANDBOX", "").lower() in ("1", "true", "yes"):
+        from pathlib import Path
+
+        from waku.tools import custom, integration_builder, terminal
+
+        registry.register(terminal.make_tool())
+        registry.register(integration_builder.make_tool(home=settings.home))
+        registry.register(integration_builder.make_configure_tool(home=settings.home))
+        workspace = Path(os.getenv("WAKU_WORKSPACE", "/workspace"))
+        for tool in custom.load_tools(workspace / "integrations" / "tools", recorder=recorder):
+            registry.register(tool)
 
     # Memory self-management — the agent can correct/forget memory, learn rules,
     # and author its own skills (feels like a personal agent, not a black box).
@@ -50,7 +66,7 @@ def build_registry(conn: sqlite3.Connection, settings: Settings, memory=None) ->
         try:
             from waku.tools.mcp_client import MCPBridge
 
-            bridge = MCPBridge(mcp_config)
+            bridge = MCPBridge(mcp_config, recorder=recorder)
             for t in bridge.start():
                 registry.register(t)
             registry.mcp_bridge = bridge  # so Waku.close() can stop the servers

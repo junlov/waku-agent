@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import threading
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -29,12 +30,120 @@ from pathlib import Path
 
 from waku.config import load_settings
 from waku.db import connect
+from waku.runtime.learning_context import LearningContext
 
 PORT = 7777
 # The frontend lives in its own files (static/index.html + style.css + app.js),
 # served as-is by this stdlib server — no build step, no framework. Edit those
 # to change the UI; edit this file to change the server/API.
 STATIC = Path(__file__).resolve().parent / "static"
+ROOT = Path(__file__).resolve().parents[2]
+
+def _chapter_title(markdown: str, number: str) -> str:
+    first = markdown.splitlines()[0].removeprefix("# ").strip()
+    first = re.sub(r"\s*\(short brief; expanded when you start it\)\s*$", "", first)
+    return re.sub(rf"^Chapter {int(number)}:\s*", "", first, flags=re.IGNORECASE)
+
+
+def _chapter_summary(markdown: str) -> str:
+    scar = re.search(r"\*\*The scar:\*\*\s*(.+?)(?:\n\n|$)", markdown, re.DOTALL)
+    if scar:
+        text = scar.group(1)
+    else:
+        paragraphs = [p.strip() for p in markdown.split("\n\n") if p.strip()]
+        text = next((p for p in paragraphs[1:] if not p.startswith(("#", "```"))), "")
+    return re.sub(r"\s+", " ", re.sub(r"[*`]", "", text)).strip()
+
+
+def _repository_tags(root: Path) -> set[str]:
+    """Read loose and packed tag refs without requiring git inside preview images."""
+    git_dir = root / ".git"
+    if git_dir.is_file():
+        pointer = git_dir.read_text().strip()
+        if pointer.startswith("gitdir:"):
+            git_dir = (root / pointer.split(":", 1)[1].strip()).resolve()
+    tags_dir = git_dir / "refs/tags"
+    tags = {
+        path.relative_to(tags_dir).as_posix()
+        for path in tags_dir.rglob("*")
+        if path.is_file()
+    } if tags_dir.is_dir() else set()
+    packed = git_dir / "packed-refs"
+    if packed.is_file():
+        for line in packed.read_text().splitlines():
+            if line.startswith(("#", "^")) or " refs/tags/" not in line:
+                continue
+            tags.add(line.split(" refs/tags/", 1)[1])
+    return tags
+
+
+def curriculum_catalog(root: Path = ROOT, tags: set[str] | None = None) -> dict:
+    """Return the lesson catalog and git-backed learner state for the dashboard."""
+    if tags is None:
+        tags = _repository_tags(root)
+
+    docs = root / "docs/scale"
+    contract = json.loads((docs / "curriculum.json").read_text())
+    metadata = {chapter["number"]: chapter for chapter in contract["chapters"]}
+    chapters = []
+    available = []
+    passed = set()
+    for number in (f"{n:02d}" for n in range(17)):
+        brief_path = next(iter(sorted(docs.glob(f"{number}-*.md"))), None)
+        if brief_path is None:
+            continue
+        if f"chapter-{number}-start" in tags:
+            available.append(number)
+        if f"learner/chapter-{number}-passed" in tags or (
+            number == "00" and "chapter-00-solution" in tags
+        ):
+            passed.add(number)
+
+    current = next((number for number in available if number not in passed), None)
+    for number in (f"{n:02d}" for n in range(17)):
+        brief_path = next(iter(sorted(docs.glob(f"{number}-*.md"))), None)
+        if brief_path is None:
+            continue
+        brief = brief_path.read_text()
+        architect_path = next(iter(sorted((docs / "tracks").glob(f"{number}-*-architect.md"))), None)
+        engineer_path = next(iter(sorted((docs / "tracks").glob(f"{number}-*-ai-engineer.md"))), None)
+        if number in passed:
+            status = "passed"
+        elif number == current:
+            status = "current"
+        elif number in available:
+            status = "available"
+        else:
+            status = "roadmap"
+        chapters.append({
+            "number": number,
+            "title": _chapter_title(brief, number),
+            "summary": _chapter_summary(brief),
+            "status": status,
+            "runnable": number in available,
+            "check": f"make check-{number}",
+            "phase": metadata[number]["phase"],
+            "competency": metadata[number]["competency"],
+            "evidence_view": metadata[number]["evidence_view"],
+            "knowledge_checks": metadata[number]["knowledge_checks"],
+            "lab": metadata[number].get("lab"),
+            "brief": brief,
+            "tracks": {
+                "architect": architect_path.read_text() if architect_path else "",
+                "engineer": engineer_path.read_text() if engineer_path else "",
+            },
+        })
+    return {
+        "chapters": chapters,
+        "version": contract["version"],
+        "mission": contract["mission"],
+        "completion_authority": contract["completion_authority"],
+        "phases": contract["phases"],
+        "current": current,
+        "available_through": available[-1] if available else None,
+        "passed": len(passed),
+        "total": len(chapters),
+    }
 
 # One shared agent for the browser gateway. Built lazily (first chat), reused
 # across the threaded server's workers via a cross-thread connection + a lock
@@ -55,7 +164,7 @@ def _get_agent():
     return _agent
 
 
-def chat(message: str) -> dict:
+def chat(message: str, learning_context: LearningContext | None = None) -> dict:
     """Run one real turn through the harness and return the structured result —
     gate decision, tool calls, reply, latency — so the browser can render the
     pipeline as it happened. Writes traces + memory like any other gateway."""
@@ -64,7 +173,7 @@ def chat(message: str) -> dict:
         agent = _get_agent()
         start = datetime.now(timezone.utc)
         result = agent.respond(message, observer=lambda kind, ev: events.append({"kind": kind, **ev}),
-                               source="dashboard")
+                               source="dashboard", learning_context=learning_context)
         latency_ms = int((datetime.now(timezone.utc) - start).total_seconds() * 1000)
 
     gate = next((e for e in events if e["kind"] == "gate"), None)
@@ -80,10 +189,11 @@ def chat(message: str) -> dict:
         "consolidation": {"new_facts": cons["new_facts"]} if cons else None,
         "iterations": result.iterations,
         "latency_ms": latency_ms,
+        "learning_context": learning_context.public_summary() if learning_context else None,
     }
 
 
-def chat_stream(message: str, emit) -> None:
+def chat_stream(message: str, emit, learning_context: LearningContext | None = None) -> None:
     """Run one turn, calling emit(kind, event) for every harness event AS it
     happens — gate decision, tool calls, and the reply text token by token —
     so the browser can show thinking stream in (like the CLI/voice do). Ends
@@ -98,7 +208,13 @@ def chat_stream(message: str, emit) -> None:
     with _agent_lock:
         agent = _get_agent()
         start = datetime.now(timezone.utc)
-        result = agent.respond(message, observer=observer, source="dashboard", stream=True)
+        result = agent.respond(
+            message,
+            observer=observer,
+            source="dashboard",
+            stream=True,
+            learning_context=learning_context,
+        )
         latency_ms = int((datetime.now(timezone.utc) - start).total_seconds() * 1000)
 
     gate = next((e for e in events if e["kind"] == "gate"), None)
@@ -112,7 +228,20 @@ def chat_stream(message: str, emit) -> None:
         "consolidation": {"new_facts": cons["new_facts"]} if cons else None,
         "iterations": result.iterations,
         "latency_ms": latency_ms,
+        "learning_context": learning_context.public_summary() if learning_context else None,
     })
+
+
+def test_mcp_connection(payload: dict) -> dict:
+    """Re-run one configured MCP handshake and expose the result to Tools/Ops."""
+    name = str(payload.get("name") or "").strip()
+    if not name:
+        return {"ok": False, "error": "server name is required"}
+    with _agent_lock:
+        bridge = getattr(_get_agent(), "mcp_bridge", None)
+        if bridge is None:
+            return {"ok": False, "error": "MCP runtime is unavailable or no servers are configured"}
+        return bridge.test_connection(name)
 
 # Rough $/million tokens (in, out) for a dollar ESTIMATE — the number humans
 # actually feel. Keyed by provider; deliberately approximate and labelled "est".
@@ -194,12 +323,9 @@ def _parse_ts(ts: str):
 def _tool_status(output: str) -> str:
     """Classify a tool result for the UI: ok / warn / error — from the output
     string alone (tools already report honestly, so trust their words)."""
-    low = (output or "").lower()
-    if "failed" in low or "timed out" in low or low.startswith("error"):
-        return "error"
-    if "already exists" in low or "not synced" in low or "skipped" in low:
-        return "warn"
-    return "ok"
+    from waku.ops.integrations import classify_result
+
+    return classify_result(output)[0]
 
 
 def collect() -> dict:
@@ -316,7 +442,10 @@ def collect() -> dict:
     db_info = {
         "path": str(db_path.resolve()),
         "size": db_path.stat().st_size if db_path.exists() else 0,
-        "tables": [table_info(n) for n in ("calendar_events", "facts", "episodes", "chat_log")],
+        "tables": [table_info(n) for n in (
+            "calendar_events", "facts", "episodes", "chat_log", "learning_journal",
+            "lab_attempts", "integration_events",
+        )],
         "fts": [t for t in all_tables if t.endswith("_fts")],
         "all_tables": all_tables,
     }
@@ -340,6 +469,9 @@ def collect() -> dict:
             "trace_files": len(trace_files),
         },
         "turns": turns[::-1][:50],
+        "integration_events": rows(
+            "SELECT * FROM integration_events ORDER BY created_at DESC, id DESC LIMIT 100"
+        ),
         "wake_scans": wake_scans[::-1][:25],
         # last raw trace lines, so Ops shows traces inline (no folder needed)
         "trace_tail": [{"type": e.get("type"), "ts": e.get("ts"),
@@ -349,6 +481,7 @@ def collect() -> dict:
         "trace_file": (trace_files[-1].name if trace_files else None),
         "facts": rows("SELECT id, subject, content, source, created_at FROM facts ORDER BY id DESC"),
         "episodes": rows("SELECT id, happened_at, summary FROM episodes ORDER BY happened_at DESC"),
+        "learning_journal": rows("SELECT * FROM learning_journal ORDER BY chapter"),
         "soul": (home / "SOUL.md").read_text() if (home / "SOUL.md").exists() else "",
         "chat_pending": conn.execute("SELECT COUNT(*) FROM chat_log WHERE consolidated=0").fetchone()[0],
         "chat_log": rows("SELECT role, content, consolidated, source, session_id, created_at FROM chat_log ORDER BY id DESC LIMIT 80")[::-1],
@@ -436,41 +569,62 @@ def tools_info() -> dict:
     catalog (no MCP subprocess is spawned just to render the page)."""
     settings = load_settings()
     settings.ensure_home()
-    mcp = {"configured": False, "servers": [], "live": False}
+    mcp = {"configured": False, "servers": [], "live": False, "health": []}
     mcp_path = settings.home / "mcp.json"
     if mcp_path.exists():
         mcp["configured"] = True
         try:
-            mcp["servers"] = [s.get("name", "?") for s in json.loads(mcp_path.read_text()).get("servers", [])]
+            specs = json.loads(mcp_path.read_text()).get("servers", [])
+            mcp["servers"] = [s.get("name", "?") for s in specs]
+            mcp["health"] = [
+                {"name": s.get("name", "?"), "status": "configured",
+                 "transport": s.get("transport") or (
+                     "streamable_http" if s.get("url") else "stdio"
+                 ), "tools": 0, "last_error": "", "connected_at": None}
+                for s in specs
+            ]
         except (json.JSONDecodeError, OSError):
             pass
 
     catalog = []
     if _agent is not None:
-        mcp["live"] = getattr(_agent, "mcp_bridge", None) is not None
+        bridge = getattr(_agent, "mcp_bridge", None)
+        if bridge is not None:
+            mcp["health"] = bridge.health()
+            mcp["live"] = any(s.get("status") == "connected" for s in mcp["health"])
         tools = list(_agent.tools._tools.values())
     else:
         # Display-only: same tools minus MCP (building the real registry would
         # start MCP servers, which we don't want on a 5-second poll).
         from waku.memory import Memory
-        from waku.tools import calendar, memory_admin, messages, notes, search
+        from waku.tools import calendar, curriculum, memory_admin, messages, notes, search
 
         conn = connect(settings.home)
         mem = Memory(conn, settings, None)
         tools = [calendar.make_tool(conn, settings.home, apple_calendar=settings.apple_calendar),
                  calendar.make_list_tool(conn),
                  notes.make_tool(conn), messages.make_tool(settings.home),
-                 search.make_tool(),
+                 search.make_tool(), curriculum.make_tool(),
                  memory_admin.make_manage_memory_tool(mem),
                  memory_admin.make_update_soul_tool(settings),
                  memory_admin.make_create_skill_tool(settings, mem)]
+        if os.getenv("WAKU_SANDBOX", "").lower() in ("1", "true", "yes"):
+            from waku.tools import custom, integration_builder, terminal
+
+            workspace = Path(os.getenv("WAKU_WORKSPACE", "/workspace"))
+            tools += [terminal.make_tool(workspace=workspace),
+                      integration_builder.make_tool(workspace=workspace, home=settings.home),
+                      integration_builder.make_configure_tool(home=settings.home)]
+            tools += custom.load_tools(workspace / "integrations" / "tools")
         if settings.apple_tools:
             from waku.tools import apple
 
             tools += apple.make_tools()
     for t in tools:
-        catalog.append({"name": t.name, "description": t.description,
-                        "source": _tool_source(t.name, mcp["servers"])})
+        source = "custom" if t.source in {"custom", "workbench"} else _tool_source(
+            t.name, mcp["servers"]
+        )
+        catalog.append({"name": t.name, "description": t.description, "source": source})
     catalog.sort(key=lambda c: (c["source"], c["name"]))
     from waku.tools.experimental import PLANNED
 
@@ -671,6 +825,31 @@ def memory_action(payload: dict) -> dict:
     return {"error": f"unknown action {action}"}
 
 
+def learning_journal_action(payload: object) -> dict:
+    """Validate curriculum claims, then persist learner-authored journal state."""
+    from waku.memory.learning_journal import LearningJournalStore
+
+    context = LearningContext.from_payload(payload, curriculum_catalog())
+    if context is None:
+        return {"error": "learning context is required"}
+    settings = load_settings()
+    settings.ensure_home()
+    row = LearningJournalStore(connect(settings.home)).upsert(
+        context.chapter, context.track, context.journal,
+    )
+    return {"ok": True, "journal": row}
+
+
+def learning_context_for_turn(payload: object) -> LearningContext | None:
+    """Persist the exact validated snapshot supplied to a curriculum chat turn."""
+    if payload is None:
+        return None
+    result = learning_journal_action(payload)
+    if result.get("error"):
+        raise ValueError(result["error"])
+    return LearningContext.from_payload(payload, curriculum_catalog())
+
+
 _models_cache: dict[str, tuple[float, list]] = {}
 
 
@@ -771,11 +950,24 @@ def settings_info() -> dict:
     }
 
 
+def _settings_env_path() -> Path:
+    """Return a writable settings file, honoring isolated container runtimes."""
+    configured = os.getenv("WAKU_ENV_FILE", "").strip()
+    if configured:
+        path = Path(configured).expanduser()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
+
+    from dotenv import find_dotenv
+
+    return Path(find_dotenv(usecwd=True) or ".env")
+
+
 def apply_settings(payload: dict) -> dict:
     """Write .env + os.environ, then rebuild the agent so the switch is live.
     Never logs keys; only whitelisted env names are writable."""
     global _agent
-    from dotenv import find_dotenv, set_key
+    from dotenv import set_key
 
     from waku.loop.models import PROVIDERS
 
@@ -784,7 +976,7 @@ def apply_settings(payload: dict) -> dict:
         return {"error": f"unknown provider {provider}"}
     writable = ({"WAKU_PROVIDER", "WAKU_MODEL", "WAKU_SMALL_MODEL", "TAVILY_API_KEY"}
                 | {p.key_env for p in PROVIDERS.values()})
-    env_path = find_dotenv(usecwd=True) or ".env"
+    env_path = _settings_env_path()
 
     updates = {"WAKU_PROVIDER": provider,
                "WAKU_MODEL": payload.get("model", "") or "",
@@ -794,7 +986,7 @@ def apply_settings(payload: dict) -> dict:
             updates[k] = v
     for k, v in updates.items():
         if k in writable:
-            set_key(env_path, k, v)
+            set_key(str(env_path), k, v)
             os.environ[k] = v
 
     with _agent_lock:
@@ -837,9 +1029,11 @@ def events_since(cursor):
 
 
 class Handler(BaseHTTPRequestHandler):
-    def _send(self, body: bytes, ctype: str) -> None:
+    def _send(self, body: bytes, ctype: str, *, cache_control: str | None = None) -> None:
         self.send_response(200)
         self.send_header("Content-Type", ctype)
+        if cache_control:
+            self.send_header("Cache-Control", cache_control)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -847,6 +1041,23 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):  # noqa: N802 — http.server API
         if self.path == "/api/data":
             self._send(json.dumps(collect(), default=str).encode(), "application/json")
+        elif self.path == "/api/curriculum":
+            self._send(json.dumps(curriculum_catalog()).encode(), "application/json")
+        elif self.path.startswith("/api/learning-journal"):
+            from urllib.parse import parse_qs, urlparse
+            from waku.memory.learning_journal import LearningJournalStore
+
+            chapter = parse_qs(urlparse(self.path).query).get("chapter", [""])[0]
+            settings = load_settings()
+            settings.ensure_home()
+            row = LearningJournalStore(connect(settings.home)).get(chapter) if chapter else None
+            self._send(json.dumps({"journal": row}).encode(), "application/json")
+        elif self.path.startswith("/api/lab"):
+            from urllib.parse import parse_qs, urlparse
+            from waku.ops.lab import lab_state
+
+            chapter = parse_qs(urlparse(self.path).query).get("chapter", [""])[0]
+            self._send(json.dumps(lab_state(chapter), default=str).encode(), "application/json")
         elif self.path == "/api/models":
             self._send(json.dumps(list_models()).encode(), "application/json")
         elif self.path.startswith("/api/events"):
@@ -874,7 +1085,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         ctype = {".css": "text/css", ".js": "text/javascript",
                  ".html": "text/html; charset=utf-8"}.get(target.suffix, "application/octet-stream")
-        self._send(target.read_bytes(), ctype)
+        self._send(target.read_bytes(), ctype, cache_control="no-store")
 
     def do_POST(self):  # noqa: N802 — local write endpoints
         length = int(self.headers.get("Content-Length", 0))
@@ -903,11 +1114,16 @@ class Handler(BaseHTTPRequestHandler):
                 emit("done", {"error": "empty message"})
                 return
             try:
-                chat_stream(message, emit)
+                learning_context = learning_context_for_turn(payload.get("learning_context"))
+                chat_stream(message, emit, learning_context=learning_context)
             except Exception as exc:  # surface as a terminal event, don't 500
                 emit("done", {"error": f"{type(exc).__name__}: {exc}"})
             return
-        routes = {"/api/chat": None, "/api/memory": memory_action, "/api/settings": apply_settings,
+        routes = {"/api/chat": None, "/api/memory": memory_action,
+                  "/api/learning-journal": learning_journal_action,
+                  "/api/lab/run": None, "/api/lab/attach": None,
+                  "/api/settings": apply_settings,
+                  "/api/integrations/test": test_mcp_connection,
                   "/api/query": run_query, "/api/session": session_action}
         if self.path not in routes:
             self.send_response(404)
@@ -917,7 +1133,16 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if self.path == "/api/chat":
                 message = (payload.get("message") or "").strip()
-                out = chat(message) if message else {"error": "empty message"}
+                learning_context = learning_context_for_turn(payload.get("learning_context"))
+                out = chat(message, learning_context=learning_context) if message else {"error": "empty message"}
+            elif self.path == "/api/lab/run":
+                from waku.ops.lab import run_lab_action
+
+                out = run_lab_action(payload)
+            elif self.path == "/api/lab/attach":
+                from waku.ops.lab import attach_lab_attempt
+
+                out = attach_lab_attempt(payload)
             else:
                 out = routes[self.path](payload)
         except Exception as exc:  # surface, don't 500 — the browser shows it
@@ -932,9 +1157,10 @@ def main() -> None:
     # Port precedence: WAKU_DASHBOARD_PORT, then the conventional PORT (used by
     # deploy platforms and IDE preview panes), then 7777. If it's taken, walk on.
     base = int(os.getenv("WAKU_DASHBOARD_PORT") or os.getenv("PORT") or PORT)
+    host = os.getenv("WAKU_DASHBOARD_HOST", "127.0.0.1")
     for port in range(base, base + 10):  # walk past a busy port instead of crashing
         try:
-            server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+            server = ThreadingHTTPServer((host, port), Handler)
         except OSError:
             print(f"port {port} busy, trying {port + 1}…")
             continue

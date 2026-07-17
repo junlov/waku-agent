@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-CHAPTERS = tuple(f"{number:02d}" for number in range(11))
+CHAPTERS = tuple(f"{number:02d}" for number in range(17))
 
 
 def available_chapters(tags: set[str]) -> list[str]:

@@ -33,3 +33,8 @@ latency hides.
 **Done when:** you locate three consecutive injected faults in under ten
 minutes each, from telemetry alone, and one alert fired before you
 started looking.
+
+Carry run, tenant, stage, and attempt correlation across queues and workers.
+These identifiers must reconstruct control flow without logging prompt,
+retrieved, tool, or memory content by default; observability is not permission
+to create a second ungoverned data store.

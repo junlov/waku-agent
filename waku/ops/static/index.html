@@ -1,19 +1,24 @@
 <!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Waku わく</title>
-<link rel="stylesheet" href="/static/style.css"></head><body>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/react/curriculum.css"></head><body>
 <nav id="nav">
   <div class="brand">Waku わく<small id="model" style="cursor:pointer" title="click to change the model" onclick="location.hash='#settings'"></small>
-    <button id="nav-toggle" title="Hide sidebar">&#10094;</button></div>
-  <div class="grp">System</div>
-  <a href="#overview" data-v="overview">Overview</a>
-  <a href="#gateway" data-v="gateway">Gateway <span class="n" id="n-gw"></span></a>
-  <a href="#loop" data-v="loop">Loop <span class="n" id="n-loop"></span></a>
-  <a href="#memory" data-v="memory">Memory <span class="n" id="n-mem"></span></a>
-  <a href="#tools" data-v="tools">Tools <span class="n" id="n-tools"></span></a>
-  <a href="#database" data-v="database">Database <span class="n" id="n-db"></span></a>
-  <a href="#ops" data-v="ops">Ops <span class="n" id="n-ops"></span></a>
-  <a href="#settings" data-v="settings">Settings</a>
+    <button id="nav-toggle" title="Hide sidebar" aria-label="Hide sidebar">&#10094;</button></div>
+  <div class="grp">Learn</div>
+  <a href="#learn" data-v="learn">Curriculum <span class="n" id="n-learn"></span></a>
+  <div id="system-nav">
+    <div class="grp">Evidence workspace</div>
+    <a href="#overview" data-v="overview">Overview</a>
+    <a href="#gateway" data-v="gateway">Gateway <span class="n" id="n-gw"></span></a>
+    <a href="#loop" data-v="loop">Loop <span class="n" id="n-loop"></span></a>
+    <a href="#memory" data-v="memory">Memory <span class="n" id="n-mem"></span></a>
+    <a href="#tools" data-v="tools">Tools <span class="n" id="n-tools"></span></a>
+    <a href="#database" data-v="database">Database <span class="n" id="n-db"></span></a>
+    <a href="#ops" data-v="ops">Ops <span class="n" id="n-ops"></span></a>
+    <a href="#settings" data-v="settings">Settings</a>
+  </div>
 </nav>
 <div class="resizer" id="nav-resizer" title="Drag to resize sidebar"></div>
 <main>
@@ -26,21 +31,29 @@
 <div class="resizer" id="dock-resizer" title="Drag to resize chat"></div>
 <aside id="dock">
   <div class="dockhead">
-    <span class="dt">Chat</span>
+    <div class="coach-identity">
+      <span class="coach-mark" aria-hidden="true">わ</span>
+      <span><b class="dt">Waku coach</b><small id="dock-model">connecting…</small></span>
+    </div>
     <span class="arch-status"></span>
-    <button id="dock-close" title="Collapse chat">&rsaquo;</button>
+    <button id="dock-close" title="Collapse chat" aria-label="Collapse chat">&rsaquo;</button>
   </div>
   <div class="sesshead" style="padding:8px 2px 0">
     <button class="sessbtn" onclick="newChat()">+ New chat</button>
     <button class="sessbtn" onclick="toggleSessMenu(event)">History &#9662;</button>
   </div>
+  <div id="learning-context" class="learning-context-strip" hidden></div>
   <div class="chatlog" id="docklog"></div>
   <div class="chatbar">
-    <input id="dmsg" placeholder="Message Waku&hellip;" autocomplete="off">
-    <button id="mic" title="Click to talk — local Whisper, no cloud"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
-    <button id="dsend">Send</button>
+    <div class="composer-row">
+      <textarea id="dmsg" rows="1" placeholder="Message Waku&hellip;" autocomplete="off"></textarea>
+      <button id="mic" title="Click to talk — local Whisper, no cloud"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      <button id="dsend">Send <span aria-hidden="true">↑</span></button>
+    </div>
+    <div class="composer-hint"><span>Enter to send · Shift+Enter for a new line</span><span>Reviewer, not author</span></div>
   </div>
 </aside>
-<button id="nav-reopen" title="Show sidebar">&#9776;</button>
-<button id="dock-reopen" title="Open chat">&lsaquo; Chat</button>
+<button id="nav-reopen" title="Show sidebar" aria-label="Show sidebar">&#9776;</button>
+<button id="dock-reopen" title="Open chat" aria-label="Open chat">&lsaquo; Chat</button>
+<script type="module" src="/static/react/curriculum.js"></script>
 <script src="/static/app.js"></script></body></html>

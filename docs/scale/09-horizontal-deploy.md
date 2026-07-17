@@ -25,6 +25,11 @@ deploys lose zero work. A docker compose cluster (proxy, 3 workers,
 Postgres, Redis) becomes the reference deployment, and rolling one worker
 at a time becomes your zero-downtime deploy.
 
+Treat the worker as an immutable, replaceable process with externally owned
+state, and choose concurrency from measured CPU, memory, latency, and downstream
+limits. Chapter 15 will enforce the complete container contract under non-root,
+read-only, ephemeral, and signal-driven hosting.
+
 **Traps ahead:** sticky sessions are the tempting shortcut and the wrong
 lesson (they turn worker death back into data loss); the per-session
 ordering you built in chapter 2 must now hold ACROSS workers (a

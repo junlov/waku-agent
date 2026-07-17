@@ -22,6 +22,11 @@ usage ledger. Then the noisy-neighbor half: per-tenant rate limits and
 concurrency caps so one hot tenant cannot eat the worker pool you built in
 chapter 2.
 
+Tenant identity is trusted runtime context created at the authenticated API
+boundary. It must never be accepted from user text, retrieved documents, model
+output, or tool arguments; those are data, not authority. Chapter 12 will try
+to forge every one of those paths.
+
 **Traps ahead:** SOUL.md and skills are currently global (product decision:
 shared or per-tenant?); the dashboard shows everything to everyone (it must
 grow a tenant filter or an admin notion); "tenant id in every query" is

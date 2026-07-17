@@ -32,6 +32,11 @@ canary turns before the comparison means anything); shadow traffic must
 not write to real memory (replay against a scratch tenant); "worse" needs
 a definition before the experiment, or the experiment decides nothing.
 
+Shadow and canary fixtures must cross the same versioned contracts as live
+traffic, and shadow tools must be side-effect-free or routed to disposable
+stores. A scratch tenant name alone is not isolation from email, payments, or
+other external effects.
+
 **Done when:** the deliberately worse config is blocked automatically at
 the canary ring with a report a human can read, a genuinely fine config
 sails through, and one incident from an earlier chapter now lives in the

@@ -11,6 +11,8 @@ from waku.db import connect
 from waku.loop.agent import LoopResult, Observer, run_loop
 from waku.loop.models import get_client
 from waku.ops.tracing import Tracer, compose
+from waku.ops.integrations import IntegrationRecorder, classify_exception
+from waku.runtime.learning_context import LearningContext, contextualize_learning_turn
 from waku.runtime.session import Session
 from waku.tools import build_registry
 
@@ -28,7 +30,10 @@ class Waku:
         from waku.memory import Memory
 
         self.memory = Memory(self.conn, self.settings, self.client)
-        self.tools = build_registry(self.conn, self.settings, self.memory)
+        self.integration_recorder = IntegrationRecorder(self.settings.home)
+        self.tools = build_registry(
+            self.conn, self.settings, self.memory, recorder=self.integration_recorder
+        )
         self.mcp_bridge = getattr(self.tools, "mcp_bridge", None)
         self.session = Session(self.settings, memory=self.memory)
         self.tracer = Tracer(self.settings)
@@ -40,7 +45,8 @@ class Waku:
             self.mcp_bridge.close()
 
     def respond(self, user_message: str, observer: Observer | None = None,
-                source: str = "cli", stream: bool = False) -> LoopResult:
+                source: str = "cli", stream: bool = False,
+                learning_context: LearningContext | None = None) -> LoopResult:
         """One full turn: assemble working memory → run the loop → persist.
         `source` tags which gateway the message arrived through (cli / voice /
         telegram / dashboard), so the unified chat can show its origin.
@@ -50,19 +56,33 @@ class Waku:
 
         with self.tracer.turn(user_message):
             system = self.session.build_system(user_message, notify=notify)
-            messages = list(self.session.history) + [{"role": "user", "content": user_message}]
-
-            result = run_loop(
-                client=self.client,
-                model=self.settings.model,
-                system=system,
-                messages=messages,
-                tools=self.tools,
-                max_iterations=self.settings.max_iterations,
-                max_tokens=self.settings.max_tokens,
-                observer=notify,
-                stream=stream,
+            system, model_message = contextualize_learning_turn(
+                system, user_message, learning_context,
             )
+            messages = list(self.session.history) + [{"role": "user", "content": model_message}]
+
+            try:
+                result = run_loop(
+                    client=self.client,
+                    model=self.settings.model,
+                    system=system,
+                    messages=messages,
+                    tools=self.tools,
+                    max_iterations=self.settings.max_iterations,
+                    max_tokens=self.settings.max_tokens,
+                    observer=notify,
+                    stream=stream,
+                )
+            except Exception as exc:
+                self.integration_recorder.record(
+                    source="provider",
+                    integration=self.settings.provider,
+                    operation=self.settings.model or "model_call",
+                    status="error",
+                    category=classify_exception(exc),
+                    message=f"{type(exc).__name__}: {exc}",
+                )
+                raise
 
             self.session.add_exchange(user_message, result.reply, tool_calls=result.tool_calls,
                                       source=source)

@@ -38,7 +38,7 @@ echo "python: $($PY --version 2>&1) | branch: $(git branch --show-current)"
 
 # 2. fast checks (no network, no keys)
 $PY -m ruff check waku evals scale scripts >/dev/null && echo "lint: clean" || { echo "lint: FAILING"; exit 1; }
-$PY -m pytest -q evals/deterministic >/dev/null 2>&1 && echo "offline evals: passing" \
+WAKU_PROVIDER=sim WAKU_API_KEY= "$PY" -m pytest -q evals/deterministic >/dev/null 2>&1 && echo "offline evals: passing" \
   || { echo "offline evals: FAILING (run: make eval)"; exit 1; }
 $PY -m pytest -q scale/tests/test_curriculum_harness.py >/dev/null 2>&1 \
   && echo "curriculum harness: passing" \

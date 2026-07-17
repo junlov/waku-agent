@@ -8,7 +8,10 @@ adapted from launch-agentic-rag's app/agents/tools/registry.py.)
 from __future__ import annotations
 
 from dataclasses import dataclass
+from time import monotonic
 from typing import Any, Callable
+
+from waku.ops.integrations import classify_result
 
 
 @dataclass
@@ -17,6 +20,7 @@ class Tool:
     description: str
     input_schema: dict[str, Any]
     fn: Callable[..., str]  # tools return a string the model observes
+    source: str = "native"
 
     def to_api(self) -> dict[str, Any]:
         """The shape the Messages API expects in its `tools=` parameter."""
@@ -28,8 +32,9 @@ class Tool:
 
 
 class ToolRegistry:
-    def __init__(self) -> None:
+    def __init__(self, recorder=None) -> None:
         self._tools: dict[str, Tool] = {}
+        self.recorder = recorder
 
     def register(self, tool: Tool) -> None:
         self._tools[tool.name] = tool
@@ -44,6 +49,21 @@ class ToolRegistry:
         if tool is None:
             return f"Error: unknown tool '{name}'"
         try:
-            return tool.fn(**args)
+            started = monotonic()
+            output = tool.fn(**args)
         except Exception as exc:  # surface, don't crash — the model can retry
-            return f"Error running {name}: {exc}"
+            output = f"Error running {name}: {exc}"
+        if self.recorder:
+            status, category = classify_result(output)
+            source, _, named_integration = tool.source.partition(":")
+            self.recorder.record(
+                source=source,
+                integration=named_integration or name,
+                operation=name,
+                status=status,
+                category=category,
+                latency_ms=int((monotonic() - started) * 1000),
+                message=output if status != "ok" else "completed",
+                details={"args": args},
+            )
+        return output

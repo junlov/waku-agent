@@ -42,7 +42,7 @@ a plan instead of a diff). Per chapter:
    through) rather than hand-typed for practice.
 
 Default to the strict posture unless the user has stated this is their
-goal; do not assume it. Chapters 1 through 10 carry a matching
+goal; do not assume it. Chapters 1 through 16 carry a matching
 `docs/scale/tracks/NN-*-architect.md` file: point the user there instead
 of re-deriving the same questions and reading list from scratch.
 
@@ -60,7 +60,7 @@ curriculum.
 |---------|------|
 | what this curriculum is | `docs/scale/README.md` |
 | the design decisions | `docs/superpowers/specs/2026-07-15-waku-scale-curriculum-design.md` |
-| the current assignment | `docs/scale/NN-*.md` for the current chapter, plus its `docs/scale/tracks/NN-*-architect.md` / `-ai-engineer.md` companions (chapters 1-10) |
+| the current assignment | `docs/scale/NN-*.md` for the current chapter, plus its `docs/scale/tracks/NN-*-architect.md` / `-ai-engineer.md` companions (chapters 1-16) |
 | when a question is not really an engineering question | `docs/scale/DECISION-LENSES.md` |
 | who these tenants are and what was promised to them | `docs/scale/PRODUCT-SCENARIO.md`, then the user's own `docs/scale/SCENARIO.md` |
 | what happened last session | `docs/scale/PROGRESS.md` (newest entry first) |

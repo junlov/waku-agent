@@ -1,9 +1,9 @@
-# Waku at scale
+# Waku at scale and in production
 
 Part two of the waku-agent teaching repo. Upstream teaches the skeleton of
 an agent harness: the loop, the memory, the gate, the evals. This branch
-teaches what breaks when thousands of users hit that skeleton, one
-reproducible failure at a time.
+teaches what breaks when thousands of users hit that skeleton and when the
+agent crosses real production boundaries, one reproducible failure at a time.
 
 Built to be learned by anyone, self-service, in the spirit of The Odin
 Project: written lessons first, checkable completion, no instructor
@@ -14,7 +14,7 @@ through it; the writing stands alone.)
 
 Each chapter's brief (`docs/scale/NN-*.md`) covers the shared context: the
 scar, how to reproduce it, the fix's shape, and the done-when criteria.
-Beyond that, chapters 1 through 10 split into two companion files under
+Beyond that, chapters 1 through 16 split into two companion files under
 `docs/scale/tracks/`:
 
 - `NN-*-architect.md`: learning outcomes, the design questions to settle
@@ -116,7 +116,13 @@ great; pasting the brief and asking "implement this" defeats the repo.)
 
 ## Curriculum
 
-**Runnable now:** chapters 0 and 1. Chapters 2 through 10 already have briefs
+The learner UI is implemented in `frontend/` as a React/Vite adapter over the
+repository-backed `/api/curriculum` catalog. It consumes Factory's immutable
+`ui-v1.1.0` tag; `make frontend-check` typechecks and regenerates the versioned
+assets under `waku/ops/static/react/`. The Python runtime and container only
+serve those assets and do not install Node dependencies.
+
+**Runnable now:** chapters 0 and 1. Chapters 2 through 16 already have briefs
 and track-specific preparation, but their load tests and `make check-NN`
 targets are added as the curriculum reaches them. The startup command will not
 advance into a chapter until its `chapter-NN-start` tag exists.
@@ -134,10 +140,19 @@ advance into a chapter until its `chapter-NN-start` tag exists.
 | 8 | [Observability](08-observability.md) | debugging by vibes | `make check-08` |
 | 9 | [Horizontal scale & deploy](09-horizontal-deploy.md) | the process that cannot be two processes | `make check-09` |
 | 10 | [Evals at scale](10-evals-at-scale.md) | shipping regressions to 100% of traffic | `make check-10` |
+| 11 | [Typed agent contracts](11-typed-agent-contracts.md) | schema drift and permissive boundaries | `make check-11` |
+| 12 | [Trust boundaries & approvals](12-trust-boundaries-and-approvals.md) | model-controlled identity, authority, and effects | `make check-12` |
+| 13 | [Multi-agent applications](13-multi-agent-applications.md) | incoherent handoffs, delegation, and budgets | `make check-13` |
+| 14 | [Context & memory systems](14-context-and-memory-systems.md) | stale, poisoned, or cross-tenant context | `make check-14` |
+| 15 | [Production container contract](15-production-container-contract.md) | works-local images that fail hosted constraints | `make check-15` |
+| 16 | [Durable agent execution](16-durable-agent-execution.md) | lost progress and duplicate side effects | `make check-16` |
 
-Chapters 2 and 3 are the heart of "thousands of users". Chapters 4 to 7
-are the professional middle. Chapters 8 to 10 are polish; defer them
-freely. Chapters 2+ carry short briefs now and get their full assignment
+Chapters 2 and 3 are the heart of "thousands of users". Chapters 4 to 10
+build the operating system around that traffic. Chapters 11 to 16 teach the
+production-agent boundaries that transfer across frameworks and cloud vendors.
+Use the [competency map](PRODUCTION-AGENT-COMPETENCIES.md) to see how the
+sequence prepares you to design a new system without copying Waku's stack.
+Chapters 2+ carry short briefs now and get their full assignment
 (expanded brief + failing test) as the curriculum reaches them.
 
 ## The rule that keeps it teaching, not just infrastructure

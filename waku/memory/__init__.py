@@ -13,8 +13,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-
-import anthropic
+from typing import Any
 
 from waku.config import Settings
 from waku.memory import consolidation, retrieval_gate
@@ -26,7 +25,7 @@ REPO_SKILLS = Path(__file__).resolve().parents[2] / "skills"
 
 
 class Memory:
-    def __init__(self, conn: sqlite3.Connection, settings: Settings, client: anthropic.Anthropic):
+    def __init__(self, conn: sqlite3.Connection, settings: Settings, client: Any):
         self.conn = conn
         self.settings = settings
         self.client = client

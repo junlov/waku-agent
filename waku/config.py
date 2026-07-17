@@ -10,9 +10,14 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:  # minimal container preview; env vars still work
+    def load_dotenv(*_args, **_kwargs) -> bool:
+        return False
 
-load_dotenv()  # reads .env in the current directory, if present
+_env_file = os.getenv("WAKU_ENV_FILE", "").strip()
+load_dotenv(_env_file or None)  # explicit in containers; local .env otherwise
 
 
 @dataclass

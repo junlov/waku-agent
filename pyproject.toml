@@ -52,7 +52,7 @@ supabase = [
 ]
 # Optional: connect MCP servers (.waku/mcp.json)
 mcp = [
-    "mcp>=1.0",
+    "mcp>=1.27,<2",
 ]
 dev = [
     "pytest>=8.0",

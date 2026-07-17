@@ -23,6 +23,10 @@ cap, and routing: the gate already uses a cheap model, now send cheap TASKS
 (summaries, consolidation) down cheap models by policy. Caching identical
 gate decisions is the free dessert.
 
+The limit is one run-level usage budget shared by orchestration stages, tool
+loops, retries, and fallbacks. Per-agent or per-provider counters allow a
+multi-stage run to multiply the intended cap and will fail Chapter 13.
+
 **Traps ahead:** budgets need to fail closed but message well (chapter 5's
 429 rendering pattern again); cost attribution must include retries and
 fallbacks from chapter 6 (the tenant did not ask you to retry); do not

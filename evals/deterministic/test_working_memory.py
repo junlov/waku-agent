@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 
-from waku.config import load_settings
+from waku.config import Settings, load_settings
 from waku.runtime.session import Session
 
 
@@ -21,6 +21,18 @@ def test_system_prompt_includes_current_time():
     # to ask the user for the time (the live bug).
     assert re.search(r"\b\d{2}:\d{2}\b", system), "system prompt is missing a HH:MM time"
     assert "Right now it is" in system
+
+
+def test_sandbox_authority_is_runtime_context_not_durable_soul(monkeypatch, tmp_path):
+    settings = Settings(home=tmp_path)
+    (tmp_path / "SOUL.md").write_text("My customized durable soul.")
+    monkeypatch.setenv("WAKU_SANDBOX", "1")
+
+    system = Session(settings, memory=None).build_system("repair yourself")
+
+    assert "My customized durable soul." in system
+    assert "run_command has full shell and file authority" in system
+    assert "restores the last-known-good workspace" in system
 
 
 def test_session_tags_history_with_its_session_id():

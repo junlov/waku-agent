@@ -13,8 +13,7 @@ from __future__ import annotations
 
 import json
 from datetime import date
-
-import anthropic
+from typing import Any
 
 from waku.memory.episodic.store import SqliteEpisodeStore
 from waku.memory.semantic.store import SqliteFactStore
@@ -36,7 +35,7 @@ Exchanges:
 
 def consolidate_if_due(
     conn,
-    client: anthropic.Anthropic,
+    client: Any,
     small_model: str,
     every_n: int,
     facts: SqliteFactStore,

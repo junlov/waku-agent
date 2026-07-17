@@ -9,8 +9,8 @@ Two tracks exist for the prep work below: `tracks/01-baseline-slos-ai-engineer.m
 `tracks/01-baseline-slos-architect.md` (commit to defensible numbers). Pick
 the one that matches what you are practicing, or read both.
 
-**Before you draft `SLO.md`, read `PRODUCT-SCENARIO.md` and write
-`docs/scale/SCENARIO.md`.** A p95 target is not defensible in the abstract;
+**Before you draft `SLO.md`, read `PRODUCT-SCENARIO.md` and write `docs/scale/SCENARIO.md`.**
+A p95 target is not defensible in the abstract;
 it's defensible against a specific promise to a specific kind of tenant.
 
 ## The failure you are about to reproduce
@@ -58,6 +58,11 @@ A short `docs/scale/SLO.md` you write yourself, stating:
 - error-rate budget
 - correctness invariants that may never regress (tenant isolation, memory
   round-trip)
+
+For work that may outlive an HTTP request, distinguish three clocks now:
+ingress/admission latency, execution latency, and time to a durable terminal
+result. A single "request latency" hides whether the front door, worker, or
+workflow is breaking and will not survive Chapter 16.
 
 Pick numbers you can defend. Chapter 2's test will encode them, and every
 later chapter is graded against your own contract. That is what an SLO is:

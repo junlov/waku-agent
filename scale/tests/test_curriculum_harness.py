@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from scripts.curriculum import (
+    CHAPTERS,
     artifact_errors,
     available_chapters,
     current_chapter,
@@ -45,6 +46,29 @@ def test_progress_stops_before_an_unauthored_chapter():
 
     assert available_chapters(tags) == ["00", "01"]
     assert current_chapter(tags) is None
+
+
+def test_curriculum_declares_the_full_production_agent_sequence():
+    assert CHAPTERS == tuple(f"{number:02d}" for number in range(17))
+
+
+def test_session_init_forces_the_offline_provider_for_fast_evals():
+    root = Path(__file__).resolve().parents[2]
+    script = (root / "scripts/session-init.sh").read_text()
+
+    assert 'WAKU_PROVIDER=sim WAKU_API_KEY= "$PY" -m pytest -q evals/deterministic' in script
+
+
+def test_every_declared_chapter_has_a_brief_and_dual_tracks():
+    root = Path(__file__).resolve().parents[2]
+
+    for chapter in CHAPTERS:
+        briefs = list((root / "docs/scale").glob(f"{chapter}-*.md"))
+        assert len(briefs) == 1, f"chapter {chapter} must have exactly one brief"
+        if chapter == "00":
+            continue
+        assert len(list((root / "docs/scale/tracks").glob(f"{chapter}-*-architect.md"))) == 1
+        assert len(list((root / "docs/scale/tracks").glob(f"{chapter}-*-ai-engineer.md"))) == 1
 
 
 def test_chapter_1_requires_a_written_slo(tmp_path: Path):

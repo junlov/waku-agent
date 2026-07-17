@@ -73,6 +73,55 @@ CREATE TABLE IF NOT EXISTS chat_log (
     session_id TEXT DEFAULT 'default',
     created_at TEXT DEFAULT (datetime('now'))
 );
+
+-- Curriculum memory: learner-authored working beliefs, kept separate from
+-- semantic facts so an unfinished hypothesis is never promoted as truth.
+CREATE TABLE IF NOT EXISTS learning_journal (
+    chapter TEXT PRIMARY KEY,
+    track TEXT NOT NULL DEFAULT 'brief',
+    goal TEXT NOT NULL DEFAULT '',
+    hypothesis TEXT NOT NULL DEFAULT '',
+    evidence TEXT NOT NULL DEFAULT '',
+    decision TEXT NOT NULL DEFAULT '',
+    correction TEXT NOT NULL DEFAULT '',
+    next_step TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Structured integration telemetry. Raw turn order remains in traces/*.jsonl;
+-- this table makes provider/tool/MCP health queryable by the learning UI.
+CREATE TABLE IF NOT EXISTS integration_events (
+    id INTEGER PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    source TEXT NOT NULL,
+    integration TEXT NOT NULL,
+    operation TEXT NOT NULL,
+    status TEXT NOT NULL,
+    category TEXT,
+    latency_ms INTEGER,
+    retryable INTEGER NOT NULL DEFAULT 0,
+    message TEXT NOT NULL DEFAULT '',
+    details_json TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS integration_events_created_idx
+    ON integration_events(created_at DESC);
+
+-- Learning-lab attempts: commands and canonical checks executed by the human
+-- inside the sandbox. These are evidence, never completion authority.
+CREATE TABLE IF NOT EXISTS lab_attempts (
+    id INTEGER PRIMARY KEY,
+    chapter TEXT NOT NULL,
+    action TEXT NOT NULL,
+    command TEXT NOT NULL,
+    exit_code INTEGER NOT NULL,
+    output TEXT NOT NULL DEFAULT '',
+    started_at TEXT NOT NULL,
+    duration_ms INTEGER NOT NULL DEFAULT 0,
+    attached_to_journal INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS lab_attempts_chapter_idx
+    ON lab_attempts(chapter, id DESC);
 """
 
 

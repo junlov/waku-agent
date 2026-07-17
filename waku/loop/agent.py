@@ -20,8 +20,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-import anthropic
-
 from waku.tools.registry import ToolRegistry
 
 # Observers let the gateway show tool calls live and let ops/tracing record
@@ -38,7 +36,7 @@ class LoopResult:
 
 
 def run_loop(
-    client: anthropic.Anthropic,
+    client: Any,
     model: str,
     system: str,
     messages: list[dict],

@@ -29,6 +29,7 @@ def sim_server(tmp_path):
         os.environ,
         WAKU_PROVIDER="sim", WAKU_MODEL="", WAKU_SMALL_MODEL="",
         WAKU_HOME=str(tmp_path / ".waku"),
+        WAKU_ENV_FILE=str(tmp_path / ".env"),
         WAKU_DASHBOARD_PORT=str(port),
         WAKU_SIM_LATENCY_MS=os.getenv("WAKU_SIM_LATENCY_MS", "300"),
         WAKU_LLM_TIMEOUT="30",

@@ -73,6 +73,10 @@ test failure).
 
 ## Curriculum
 
+This original 0-10 scale sequence is extended by
+`2026-07-16-waku-production-agent-curriculum-expansion.md`. Chapters 11-16
+carry production-agent boundaries while preserving this break-first design.
+
 Ordered; each chapter builds on the previous. 1-3 are the core of
 "thousands of users"; 4-7 are the professional middle; 8-10 are deferrable.
 
@@ -97,7 +101,8 @@ Ordered; each chapter builds on the previous. 1-3 are the core of
 3. Learner implements the fix on `scale` (any number of commits).
 4. Claude reviews: correctness, then whether the fix would survive the next
    chapter's traffic. Iterate.
-5. Tag `chapter-NN-done`. Update the beads issue. Move on.
+5. Update `PROGRESS.md`, commit, then run
+   `python scripts/curriculum.py complete NN`. Update beads when available.
 
 ## Error handling and guardrails
 

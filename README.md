@@ -79,7 +79,10 @@ process runs every turn. This is the fastest way to *get* the system.
 
 A chat dock sits on every tab. Type or **speak**, and watch it flow through the harness on the
 Overview diagram: gate lights up → loop calls a tool → reply comes back → memory updates. The
-frontend is plain static files. No build step.
+system workspace remains plain static files. The curriculum surface is a compiled React module
+that consumes the pinned `@landing-factory/ui` tag; its versioned assets ship with Waku, so running
+the dashboard still requires no frontend toolchain. Maintainers rebuild it with
+`make frontend-check`.
 
 Each tab is one pillar, linked to the real files:
 
@@ -407,6 +410,47 @@ The `waku` command is installed with the package; the `make` targets are equival
 | `make eval` | deterministic evals (0/1, no judge) |
 | `make eval-judge` | LLM-as-judge evals (scored %) |
 | `make gate` | the release gate — both eval suites must pass |
+| `make docker-dashboard` | run the self-healing training sandbox at localhost:7777 |
+| `make docker-reset-workspace` | discard sandbox code and reseed it; preserve SQLite and keys |
+
+## Self-healing training sandbox
+
+`make docker-dashboard` gives Waku full shell and file authority inside a
+persistent `/workspace`. A sanitized copy of the repository is baked into the
+image at immutable `/seed`; the running container has no host filesystem mount.
+SQLite, the learning journal, and provider settings live in a second persistent
+volume at `/var/lib/waku`, so recreating the container loses neither repaired
+code nor learner state.
+
+After a harness repair passes its tests, Waku can request a supervised restart.
+The immutable supervisor health-checks the new process and either promotes the
+workspace or restores its last-known-good checkpoint. The container has no
+Docker socket, a read-only root filesystem, no Linux capabilities, and
+`no-new-privileges`. See
+[`ADR-0003`](docs/adr/0003-sandbox-authority-and-self-healing.md) for the trust
+boundary and recovery model.
+
+### Agent-authored tools and MCP servers
+
+Inside that sandbox, Waku can call `scaffold_integration` to create either a
+local tool in `/workspace/integrations/tools/` or a stdio MCP server in
+`/workspace/integrations/mcp/`. It then uses `run_command` to implement and test
+the starter before requesting a supervised restart. MCP enablement is explicit
+and stored in the durable `.waku/mcp.json`; local tools load only in sandbox
+mode. Scaffolding refuses to overwrite an existing integration.
+
+Every provider, tool, custom integration, and MCP lifecycle/run event is stored
+as a redacted structured row in SQLite. The immediate result appears in Chat,
+per-server connection health appears in **Tools → MCP**, and the chronological
+history appears in **Ops → Integration events**. See
+[`ADR-0004`](docs/adr/0004-agent-authored-integrations-and-observability.md).
+
+MCP connections may use `stdio` or `streamable_http`. Remote credentials belong
+in the durable environment file and are referenced from `mcp.json` with
+`{"from_env":"TOKEN_NAME"}`; secret values never belong in MCP configuration.
+Sidecar containers can join the shared `waku-integrations` network from
+[`compose.yaml`](compose.yaml), while the Waku container deliberately retains no
+Docker socket. Tools → MCP can re-run a handshake and sends the result to Ops.
 
 ## Roadmap — on the whiteboard, coming soon
 
@@ -419,7 +463,6 @@ and the dashboard's **Tools** tab lists them under **Coming soon**.
 | Whiteboard box | Skeleton tool | Why it's a skeleton (not built yet) |
 |---|---|---|
 | Sub-Agents | `delegate_task` | multi-agent coordination — kept out to keep the core single-agent and readable |
-| Terminal tool | `run_command` | needs a real sandbox + safety surface first |
 | Browser tool | `browse_web` | `search_web` already covers read-only lookups; full browsing is more |
 | Cron Job | `schedule_task` | `make brief` + a system cron line already does scheduled runs today |
 

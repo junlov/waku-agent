@@ -50,6 +50,35 @@ function renderMarkdown(text){
   return out.join("");
 }
 let D = null;
+let CURRICULUM = null;
+let LEARNING_CONTEXT = null;
+
+function learningTrackLabel(track){
+  return track === "engineer" ? "AI-engineer" : track === "architect" ? "Architect" : "Lesson";
+}
+function learningFieldCount(context){
+  if (!context) return 0;
+  if (Array.isArray(context.journal_fields)) return context.journal_fields.length;
+  return Object.entries(context.journal || {}).filter(([key, value]) => key !== "updated_at" && String(value || "").trim()).length;
+}
+function syncLearningContext(){
+  const strip = document.getElementById("learning-context");
+  const input = document.getElementById("dmsg");
+  if (strip){
+    strip.hidden = !LEARNING_CONTEXT;
+    strip.innerHTML = LEARNING_CONTEXT
+      ? `<span class="learning-context-dot"></span><span><b>Chapter ${esc(LEARNING_CONTEXT.chapter)}</b> · ${esc(learningTrackLabel(LEARNING_CONTEXT.track))} · ${learningFieldCount(LEARNING_CONTEXT)} journal note(s) shared with Waku</span>`
+      : "";
+  }
+  if (input) input.placeholder = LEARNING_CONTEXT
+    ? `Ask Waku about Chapter ${LEARNING_CONTEXT.chapter}…`
+    : "Message Waku…";
+  if (!CHAT.length) syncChatLogs();
+}
+window.addEventListener("waku-learning-context", event => {
+  LEARNING_CONTEXT = event.detail || null;
+  syncLearningContext();
+});
 
 // Click a section's data to open the real local file/folder (editor or Finder).
 function revealFile(p){ fetch("/api/reveal?path=" + encodeURIComponent(p)); }
@@ -292,7 +321,10 @@ const gateSplit = s => {
 
 // --- Chat gateway: type here, watch the harness run (turns kept in memory)
 const CHAT = [];
-const chatTurnCard = t => `<div class="card">
+const learningTurnContext = context => !context ? "" :
+  `<div class="learning-turn-context"><span class="learning-context-dot"></span>Chapter ${esc(context.chapter)} · ${esc(learningTrackLabel(context.track))}${learningFieldCount(context)?` · ${learningFieldCount(context)} journal note(s)`:""}</div>`;
+const chatTurnCard = t => `<div class="card assistant-card"><div class="message-author"><span class="assistant-mark">わ</span><span>Waku</span></div>
+  ${learningTurnContext(t.learning_context)}
   ${t.gate?`<div class="stages"><span class="stage done">gate · ${esc(t.gate.decision)}</span>${(t.tools||[]).map(x=>`<span class="stage done">tool · ${esc(x.tool)}</span>`).join("")}<span class="stage done">reply</span></div>
     <div class="meta" style="margin:0 0 6px">${esc(t.gate.reason||"")}</div>`:""}
   ${(t.tools||[]).map(toolRow).join("")}
@@ -302,7 +334,8 @@ const chatTurnCard = t => `<div class="card">
 
 // While a turn runs we stream it live: stages light up as the harness reaches
 // them, and the reply text appears token by token (with a blinking caret).
-const streamingCard = m => `<div class="card">
+const streamingCard = m => `<div class="card assistant-card streaming"><div class="message-author"><span class="assistant-mark">わ</span><span>Waku is coaching</span></div>
+  ${learningTurnContext(m.learning_context)}
   <div class="stages">
     <span class="stage ${m.gate?"done":"on"}">gate${m.gate?` · ${esc(m.gate.decision)}`:""}</span>
     ${(m.tools||[]).map(x=>`<span class="stage done">tool · ${esc(x.tool)}</span>`).join("")}
@@ -322,13 +355,80 @@ const streamingCard = m => `<div class="card">
 // latency/iteration data, and their stored form carries an internal
 // "[tools used: ...]" annotation — strip both so the thread reads cleanly.
 const stripTools = t => (t || "").replace(/\s*\[tools used:[\s\S]*\]\s*$/, "").trim();
-const historicalCard = m => `<div class="card"><div class="r">${renderMarkdown(stripTools(m.reply))}</div></div>`;
+const historicalCard = m => `<div class="card assistant-card"><div class="message-author"><span class="assistant-mark">わ</span><span>Waku</span></div><div class="r">${renderMarkdown(stripTools(m.reply))}</div></div>`;
+
+function seedChat(text){
+  const input = document.getElementById("dmsg") || document.getElementById("msg");
+  if (!input) return;
+  input.value = text;
+  input.focus();
+}
+
+const CHAT_CONTEXTS = {
+  overview: {
+    title: "Trace the live system with Waku",
+    copy: "Follow a request through the harness, inspect the latest turn, or ask why a boundary exists.",
+    prompts: ["Walk me through the live request path", "What looks unhealthy right now?", "Explain the latest turn"],
+  },
+  gateway: {
+    title: "Inspect a conversation with Waku",
+    copy: "Review what entered the system, where it came from, and how the harness responded.",
+    prompts: ["Summarize the latest conversation", "Which gateway behavior should I inspect?", "Explain the channel boundaries"],
+  },
+  loop: {
+    title: "Reason about the agent loop",
+    copy: "Inspect model decisions, tool calls, latency, and the evidence produced by a turn.",
+    prompts: ["Explain the latest loop", "Why did Waku call that tool?", "Where could this loop fail at scale?"],
+  },
+  memory: {
+    title: "Review what Waku remembers",
+    copy: "Distinguish journal context, durable facts, episodes, and retrieval decisions.",
+    prompts: ["Explain these memory layers", "What did retrieval skip?", "Review my learning journal"],
+  },
+  tools: {
+    title: "Inspect Waku's capabilities",
+    copy: "Understand what each tool can do, its authority boundary, and recent evidence.",
+    prompts: ["Which tools are available now?", "Explain the sandbox boundary", "Show me a safe tool test"],
+  },
+  database: {
+    title: "Explore durable agent state",
+    copy: "Connect the friendly product views to their exact SQLite records and schemas.",
+    prompts: ["Explain these tables", "Where does the journal live?", "Trace one record through the system"],
+  },
+  ops: {
+    title: "Review operational evidence",
+    copy: "Interpret latency, tokens, retrieval decisions, and release-gate signals.",
+    prompts: ["What should I investigate first?", "Explain the current latency", "Are there any operational warnings?"],
+  },
+  settings: {
+    title: "Configure Waku deliberately",
+    copy: "Understand providers, models, credentials, and which settings affect the harness.",
+    prompts: ["Which provider should I use?", "Explain the model settings", "Check my current configuration"],
+  },
+};
+
+function chatWelcome(){
+  const chapter = LEARNING_CONTEXT && LEARNING_CONTEXT.chapter;
+  const context = chapter ? {
+    title: `Work through Chapter ${chapter} with Waku`,
+    copy: "Use Waku to pressure-test your reasoning, inspect evidence, and decide what to try next. You remain the author.",
+    prompts: ["Help me plan this learning session", "Challenge my current hypothesis", "What evidence should I inspect next?"],
+  } : CHAT_CONTEXTS[activeView] || {
+    title: "What are you working through?",
+    copy: "Ask about the live harness, inspect a turn, or use Waku as a reviewer while you learn.",
+    prompts: ["Orient me to the Waku harness", "Explain what happens during a turn", "What should I inspect next?"],
+  };
+  const { title, copy, prompts } = context;
+  return `<div class="chat-welcome"><div class="welcome-mark">わ</div><div class="welcome-kicker">Socratic learning companion</div>
+    <h3>${esc(title)}</h3><p>${esc(copy)}</p><div class="prompt-list">${prompts.map(prompt =>
+      `<button onclick="seedChat('${prompt.replace(/'/g,"&#39;")}')"><span>${esc(prompt)}</span><b>→</b></button>`).join("")}</div></div>`;
+}
 
 function renderChatLog(){
   if (!CHAT.length)
-    return `<div class="empty" style="padding:6px 2px">Message Waku here from any tab. Open Overview to watch it flow through the harness, or the Gateway tab to see every channel's messages together.</div>`;
+    return chatWelcome();
   return CHAT.map(m => m.role==="user"
-      ? `<div class="bubble">${esc(m.text)}</div>`
+      ? `<div class="user-message"><div class="message-author">You</div><div class="bubble">${esc(m.text)}</div></div>`
       : m.pending ? streamingCard(m)
       : m.historical ? historicalCard(m)
       : chatTurnCard(m)).join("");
@@ -349,7 +449,7 @@ function applyStreamEvent(pending, ev){
   else if (ev.kind === "tool"){
     (pending.tools = pending.tools || []).push({
       tool: ev.tool, args: ev.args, output: ev.output,
-      status: (ev.output||"").toLowerCase().startsWith("error") ? "error" : "ok",
+      status: toolResultStatus(ev.output),
       summary: (ev.output || "").split(". ")[0].slice(0,120)});
     pending.stream = "";   // a new assistant turn begins after the tool result
   } else if (ev.kind === "done"){
@@ -359,20 +459,32 @@ function applyStreamEvent(pending, ev){
   }
 }
 
+function toolResultStatus(output){
+  const low = (output||"").toLowerCase();
+  if (low.includes("failed") || low.includes("timed out") || low.includes("not connected") ||
+      low.includes("connection refused") || low.startsWith("error") || /\bexit=[1-9]\d*\b/.test(low)) return "error";
+  if (low.includes("already exists") || low.includes("skipped")) return "warn";
+  return "ok";
+}
+
 async function sendChat(fromInput){
   const input = fromInput || document.getElementById("msg") || document.getElementById("dmsg");
   const text = (input && input.value || "").trim();
   if (!text) return;
   input.value = "";
+  const adapterContext = window.WakuCurriculum && window.WakuCurriculum.getLearningContext
+    ? window.WakuCurriculum.getLearningContext()
+    : null;
+  if (adapterContext) LEARNING_CONTEXT = adapterContext;
   CHAT.push({role:"user", text});
-  const pending = {role:"waku", pending:true, stream:"", started: Date.now()};
+  const pending = {role:"waku", pending:true, stream:"", started: Date.now(), learning_context:LEARNING_CONTEXT};
   CHAT.push(pending);
   syncChatLogs();
   // tick the elapsed counter while we wait for the first token
   const ticker = setInterval(() => { if (pending.pending && !pending.stream) syncChatLogs(); }, 1000);
   try {
     const res = await fetch("/api/chat/stream", {method:"POST",
-      headers:{"Content-Type":"application/json"}, body:JSON.stringify({message:text})});
+      headers:{"Content-Type":"application/json"}, body:JSON.stringify({message:text, learning_context: LEARNING_CONTEXT})});
     const reader = res.body.getReader(), dec = new TextDecoder();
     let buf = "";
     for (;;){
@@ -396,13 +508,21 @@ async function sendChat(fromInput){
 function wireDock(){
   const b = document.getElementById("dsend"), i = document.getElementById("dmsg");
   if (b) b.onclick = () => sendChat(i);
-  if (i) i.onkeydown = e => { if (e.key==="Enter") sendChat(i); };
+  if (i) i.onkeydown = e => { if (e.key==="Enter" && !e.shiftKey){ e.preventDefault(); sendChat(i); } };
   const close = document.getElementById("dock-close"), reopen = document.getElementById("dock-reopen");
-  const setClosed = v => { document.body.classList.toggle("dock-closed", v); localStorage.setItem("dockClosed", v?"1":"0"); };
+  const setClosed = (v, persist=true) => {
+    document.body.classList.toggle("dock-closed", v);
+    if (persist) localStorage.setItem("dockClosed", v?"1":"0");
+  };
   if (close) close.onclick = () => setClosed(true);
   if (reopen) reopen.onclick = () => setClosed(false);
   const saved = localStorage.getItem("dockClosed");
-  setClosed(saved === null ? window.innerWidth < 1180 : saved === "1");
+  const narrowDock = window.matchMedia("(max-width:900px)");
+  setClosed(narrowDock.matches ? true : saved === null ? window.innerWidth < 1180 : saved === "1", false);
+  narrowDock.addEventListener("change", event => {
+    if (event.matches) setClosed(true, false);
+    else setClosed(localStorage.getItem("dockClosed") === "1", false);
+  });
   syncChatLogs();
 }
 
@@ -429,7 +549,7 @@ function archSVG(d){
     <!-- HARNESS container: everything runs on your laptop, including the
          offline LLM Ops loop (tinted sub-panel) -->
     <rect class="container" x="12" y="20" width="1020" height="628" rx="16"/>
-    ${lbl(32,48,"HARNESS — runs on your laptop · the turn inside is ephemeral")}
+    ${lbl(32,48,"HARNESS — local runtime · each turn is ephemeral")}
 
     <!-- the turn: gateway → working memory → loop → reply -->
     ${box(32,72,128,56,"Gateway","cli · voice · web","chat","","gateway")}
@@ -496,6 +616,26 @@ function archSVG(d){
   </svg></div>`;
 }
 
+function archCompact(d){
+  const s = d.stats;
+  const step = (node, title, sub, view) => `<button class="arch-step" data-node="${node}" onclick="location.hash='${view}'">
+    <span class="arch-step-dot"></span><span><b>${title}</b><small>${sub}</small></span></button>`;
+  return `<div class="arch-compact">
+    <div class="arch-compact-head"><div><span>Live request path</span><b>One turn, from prompt to evidence</b></div><span class="arch-status"></span></div>
+    <div class="arch-path">
+      ${step("gateway","Gateway","web · voice · CLI","gateway")}<i>→</i>
+      ${step("wm","Working context","journal + retrieved memory","memory/overview")}<i>→</i>
+      ${step("llm","Agent loop","reason · call tools · observe","loop")}<i>→</i>
+      ${step("reply","Reply","returned to you","loop")}
+    </div>
+    <div class="arch-support">
+      <button data-node="gate" onclick="location.hash='memory/overview'"><span>Retrieval gate</span><b>${s.gate_skips} skipped · ${s.gate_retrieves} retrieved</b></button>
+      <button data-node="semantic" onclick="location.hash='memory/journal'"><span>Durable learning</span><b>${(d.learning_journal||[]).length} journal · ${d.facts.length} facts</b></button>
+      <button data-node="trace" onclick="location.hash='ops'"><span>Evidence trail</span><b>${s.trace_files} trace file(s) · always on</b></button>
+    </div>
+  </div>`;
+}
+
 // --- sub-tabs: keep long pages short by splitting them into hash-routed tabs
 // (#memory/semantic, #database/facts). Each tab is a plain link, so it's
 // bookmarkable and the architecture cards can deep-link straight to one.
@@ -521,6 +661,9 @@ const DB_DESC = {
   facts: "semantic memory — durable facts (Memory ▸ Semantic)",
   episodes: "episodic memory — dated summaries (Memory ▸ Episodic)",
   chat_log: "every message, tagged by session_id — consolidation reads from here",
+  learning_journal: "learner-authored chapter goals, hypotheses, evidence, and corrections",
+  lab_attempts: "sandbox commands, measurements, verification runs, and journal attachment state",
+  integration_events: "redacted provider, tool, custom integration, and MCP lifecycle events",
 };
 const QUERY_EXAMPLES = [
   "SELECT role, content FROM chat_log ORDER BY id DESC LIMIT 10",
@@ -624,6 +767,7 @@ function memOverview(d){
     ["Semantic","semantic",d.facts.length+" facts","durable, distilled facts about you and your people"],
     ["Episodic","episodic",d.episodes.length+" episodes","one dated summary per consolidation — stays small on purpose"],
     ["Procedural","skills",d.skills.length+" skills","SKILL.md files loaded only when relevant — how to act"],
+    ["Learning journal","journal",(d.learning_journal||[]).length+" chapters","goals, hypotheses, evidence, and corrections — learner-authored, not facts"],
   ].map(([t,sub,n,desc]) => `<div class="box" style="min-width:0" onclick="location.hash='memory/${sub}'">
       <b>${t} <span class="meta" style="font-weight:400">· ${n}</span></b><span>${desc}</span></div>`).join("");
   return `<div class="card" style="border-color:var(--accent);background:var(--accent-soft)">
@@ -633,7 +777,7 @@ function memOverview(d){
       thing as raw SQLite tables (plus the FTS5 keyword index). Same
       <code>.waku/state.db</code> — different altitude.
       <br><br>Some assistants (Hermes) keep memory as a single <code>MEMORY.md</code> file. Waku keeps
-      the queryable source in <code>state.db</code> (facts + episodes, FTS5-searchable) <b>and</b> writes a
+      the queryable source in <code>state.db</code> (facts, episodes, and the learning journal) <b>and</b> writes a
       human-readable ${reveal("MEMORY.md","MEMORY.md")} mirror after every turn — so you get both: a real file
       you can open, backed by a sturdy database.</div></div>
     <h2>The three pillars</h2>
@@ -643,6 +787,29 @@ function memOverview(d){
       this is memory <i>retrieval</i>, the hero decision. (The Ops tab charts the same skip/retrieve
       numbers as an operational metric; the decision itself is memory's.)</div>
     <div class="meta" style="margin-top:14px">Files: ${reveal("state.db","state.db")} · ${reveal("MEMORY.md","MEMORY.md")} · ${reveal("SOUL.md","SOUL.md")} · ${reveal("skills","skills/")}</div>`;
+}
+function memLearningJournal(d){
+  const journals = d.learning_journal || [];
+  const labels = {
+    goal:"Session goal", hypothesis:"Current hypothesis", evidence:"Evidence collected",
+    decision:"Decision made", correction:"What I misunderstood", next_step:"Next session",
+  };
+  let h = `<div class="card" style="border-color:var(--accent);background:var(--accent-soft)">
+    <b>Curriculum memory, not learned fact.</b>
+    <div class="r">These are your working beliefs and evidence, stored in <code>learning_journal</code>
+    inside <code>state.db</code>. Waku uses the active chapter entry for coaching, but hypotheses are
+    never silently promoted into semantic memory. Git checks remain the completion authority.</div></div>`;
+  if (!journals.length) return h + `<div class="card empty">No journal entries yet — open a chapter and start writing.</div>`;
+  h += journals.map(j => {
+    const fields = Object.entries(labels).filter(([key]) => String(j[key] || "").trim());
+    return `<div class="card"><div class="u" style="display:flex;justify-content:space-between;gap:12px;align-items:baseline">
+      <span>Chapter ${esc(j.chapter)} · ${esc(learningTrackLabel(j.track))}</span>
+      <span class="meta" style="font-weight:400">updated ${esc(j.updated_at || "")}</span></div>
+      ${fields.length ? fields.map(([key,label]) => `<div style="margin-top:12px"><div class="meta">${esc(label)}</div><div class="r">${esc(j[key])}</div></div>`).join("")
+        : `<div class="meta" style="margin-top:10px">Empty journal</div>`}
+      <div style="margin-top:14px"><a class="reveal" onclick="location.hash='learn/${esc(j.chapter)}/${esc(j.track)}'">Open chapter →</a></div></div>`;
+  }).join("");
+  return h;
 }
 function memSemantic(d){
   let h = `<div class="meta" style="margin-bottom:12px">Durable facts distilled from what you tell Waku —
@@ -729,6 +896,16 @@ function toolsResults(d){
                        : `<div class="card empty">no drafted messages</div>`;
   return h;
 }
+const MCP_TEST_RESULTS = {};
+async function testMCP(name, button){
+  button.disabled = true;
+  button.textContent = "Testing…";
+  const result = await postJSON("/api/integrations/test", {name});
+  MCP_TEST_RESULTS[name] = result.ok
+    ? `Passed · ${result.tools} tools · ${result.latency_ms}ms`
+    : `Failed · ${result.error||"unknown error"}`;
+  await refresh();
+}
 // Tools ▸ MCP: external connectors. Shows live status + a copy-paste config so
 // anyone can plug in their own server (scalable, not a one-off).
 function toolsMCP(t){
@@ -739,12 +916,28 @@ function toolsMCP(t){
     namespaced <code>&lt;server&gt;_&lt;tool&gt;</code>. ${m.configured
       ? `Configured servers: ${m.servers.map(s=>`<code>${esc(s)}</code>`).join(" ")}${m.live?"":" — start a chat to connect them."}`
       : "None configured yet."}</div></div>`;
+  h += `<div class="card" style="margin-top:12px"><b>Build one with Waku.</b>
+    <div class="r">Inside the training sandbox, ask Waku to scaffold a <code>local_tool</code> or
+    <code>mcp_server</code>. It uses <code>scaffold_integration</code> for the safe starter, then
+    <code>run_command</code> to implement and test it. A supervised restart loads the result and
+    rolls back automatically if the harness becomes unhealthy.</div></div>`;
+  if ((m.health||[]).length){
+    h += `<h2>Server health</h2>`;
+    h += table(["server","transport","status","tools","evidence",""], m.health.map(s =>
+      `<tr><td><code>${esc(s.name)}</code></td>
+       <td class="meta">${esc(s.transport||"stdio")}</td>
+       <td><span class="pill ${s.status==="connected"?"pass":s.status==="error"?"fail":"skip"}">${esc(s.status)}</span></td>
+       <td class="meta">${s.tools||0}</td>
+       <td class="meta">${esc(MCP_TEST_RESULTS[s.name]||s.last_error||s.connected_at||"—")}</td>
+       <td><button class="save" data-server="${esc(s.name)}" onclick="testMCP(this.dataset.server,this)">Test connection</button></td></tr>`));
+  }
   h += `<h2>Connect one (30 seconds)</h2><div class="card">
     <div class="meta">1 — install the extra: <code>pip install -e '.[mcp]'</code></div>
     <div class="meta" style="margin-top:6px">2 — create ${reveal("","the .waku folder")}<code>/mcp.json</code>:</div>
     <pre style="font-family:var(--mono);font-size:11.5px;color:var(--ink2);white-space:pre-wrap;margin-top:8px">{"servers": [
-  {"name": "fs", "command": "npx",
-   "args": ["-y", "@modelcontextprotocol/server-filesystem", "${esc(D&&D.home||"")}"]}
+  {"name": "service", "transport": "streamable_http",
+   "url": "http://service:8000/mcp",
+   "headers": {"Authorization": {"from_env": "SERVICE_MCP_TOKEN", "prefix": "Bearer "}}}
 ]}</pre>
     <div class="meta" style="margin-top:8px">3 — restart the dashboard. The server's tools appear above under
       <a class="reveal" onclick="location.hash='tools/available'">Available ▸ MCP servers</a>, callable in chat.</div></div>`;
@@ -754,7 +947,105 @@ function toolsMCP(t){
   return h;
 }
 
+// --- Curriculum: an Odin-style learning path backed by the actual chapter
+// files and git tags. The UI never invents completion or makes roadmap lessons
+// runnable; it explains what the repository can prove today.
+function renderLessonMarkdown(text){
+  return (text||"").split(/```[^\n]*\n?|\n```/).map((chunk, i) =>
+    i % 2 ? `<pre class="lesson-code"><code>${esc(chunk.trim())}</code></pre>`
+            : renderMarkdown(chunk)
+  ).join("");
+}
+
+function chapterStatus(ch){
+  const labels = {passed:"Passed", current:"Current", available:"Available", roadmap:"Roadmap"};
+  return `<span data-slot="status-badge" class="course-status ${ch.status}">${labels[ch.status]||ch.status}</span>`;
+}
+
+function curriculumHome(){
+  if (!CURRICULUM) return `<div class="card empty">loading the curriculum…</div>`;
+  const chapters = CURRICULUM.chapters || [];
+  const current = chapters.find(ch => ch.number === CURRICULUM.current);
+  const pct = CURRICULUM.total ? Math.round(CURRICULUM.passed / CURRICULUM.total * 100) : 0;
+  const phases = (CURRICULUM.phases||[]).map((phase, index) => {
+    const items = phase.chapters.map(n => chapters.find(ch => ch.number === n)).filter(Boolean);
+    const passed = items.filter(ch => ch.status === "passed").length;
+    return `<section data-slot="course-phase" class="course-phase">
+      <div class="phase-number">${String(index+1).padStart(2,"0")}</div>
+      <div class="phase-body"><div class="phase-kicker">${passed} of ${items.length} passed</div>
+        <h2>${esc(phase.name)}</h2><p>${esc(phase.promise)}</p>
+        <div class="lesson-list">${items.map(ch => `<a data-slot="lesson-row" href="#learn/${ch.number}" class="lesson-row ${ch.status}">
+          <span class="lesson-num">${ch.number}</span><span class="lesson-name">${esc(ch.title)}</span>${chapterStatus(ch)}
+        </a>`).join("")}</div>
+      </div></section>`;
+  }).join("");
+  return `<div data-slot="course-hero" class="course-hero">
+      <div class="course-eyebrow">Production agent engineering · 17 chapters</div>
+      <h2>Build the agent.<br>Break it at scale.<br>Prove the repair.</h2>
+      <p>A self-directed path through the failures that separate an agent demo from a production system. Every runnable lesson starts with a scar and ends with evidence.</p>
+      <div data-slot="course-progress" class="course-progress"><div class="course-progress-copy"><b>${CURRICULUM.passed} of ${CURRICULUM.total}</b><span>chapters passed</span></div>
+        <div class="progress-track" aria-label="${pct}% complete"><span style="width:${pct}%"></span></div></div>
+      ${current ? `<a class="course-cta" href="#learn/${current.number}">Continue · Chapter ${current.number} <span>→</span></a>` : ""}
+    </div>
+    <div class="course-note"><b>How this path works.</b> Read the scar, choose the architect or AI-engineer track, reproduce the failure, then make the real check green. Git tags—not browser checkboxes—are the progress record.</div>
+    <div class="course-phases">${phases}</div>`;
+}
+
+function lessonReader(route){
+  if (!CURRICULUM) return `<div class="card empty">loading the lesson…</div>`;
+  const [number, requested="brief"] = (route||"").split("/");
+  const chapters = CURRICULUM.chapters || [];
+  const index = chapters.findIndex(ch => ch.number === number);
+  if (index < 0) return curriculumHome();
+  const ch = chapters[index], prev = chapters[index-1], next = chapters[index+1];
+  const phase = (CURRICULUM.phases||[]).find(item => item.id === ch.phase);
+  const track = requested === "architect" || requested === "engineer" ? requested : "brief";
+  const markdown = track === "brief" ? ch.brief : ch.tracks[track];
+  const view = ch.evidence_view || "overview";
+  const runnableCopy = ch.status === "current"
+    ? `This is the active assignment. Run the failure first; only green evidence advances the course.`
+    : ch.status === "passed"
+      ? `Your repository records this chapter as passed. Revisit the evidence or compare approaches.`
+      : ch.status === "available"
+        ? `The instrument exists, but an earlier chapter is still active. Read ahead without fixing ahead.`
+        : `This module is designed but its deterministic failure instrument is not published yet. Preview it; do not treat it as runnable.`;
+  const tabs = [
+    ["brief","Lesson"],
+    ...(ch.tracks.architect ? [["architect","Architect track"]] : []),
+    ...(ch.tracks.engineer ? [["engineer","AI-engineer track"]] : []),
+  ].map(([key,label]) => `<a class="lesson-tab ${track===key?"on":""}" href="#learn/${ch.number}/${key}">${label}</a>`).join("");
+  return `<div class="lesson-breadcrumb"><a href="#learn">Curriculum</a><span>/</span><span>Chapter ${ch.number}</span></div>
+    <div class="lesson-heading"><div><div class="course-eyebrow">Chapter ${ch.number} · ${chapterStatus(ch)}</div>
+      <h2>${esc(ch.title)}</h2><p>${esc(ch.summary)}</p><div class="lesson-competency">Competency · ${esc(ch.competency)}</div>
+      <dl data-slot="lesson-contract" class="lesson-contract">
+        <div><dt>Phase</dt><dd>${esc(phase&&phase.name||ch.phase)}</dd></div>
+        <div><dt>Sequence</dt><dd>${index+1} of ${chapters.length}</dd></div>
+        <div><dt>Prerequisite</dt><dd>${prev ? `Chapter ${prev.number} · ${esc(prev.title)}` : "Working harness"}</dd></div>
+        <div><dt>Required evidence</dt><dd>${ch.runnable ? esc(ch.check) : "Failure instrument pending"}</dd></div>
+      </dl></div></div>
+    <div data-slot="lesson-tabs" class="lesson-tabs" role="navigation" aria-label="Lesson tracks">${tabs}</div>
+    <div class="lesson-layout"><div><article data-slot="lesson-content" class="lesson-article">${renderLessonMarkdown(markdown)}</article>
+        <section data-slot="knowledge-check" class="knowledge-check" aria-labelledby="knowledge-check-title">
+          <div class="aside-label">Mastery reflection</div><h3 id="knowledge-check-title">Knowledge check</h3>
+          <ol>${(ch.knowledge_checks||[]).map(question => `<li>${esc(question)}</li>`).join("")}</ol>
+          <p>Answer these in your own words before treating a green check as mastery.</p>
+        </section></div>
+      <aside data-slot="assignment-panel" class="lesson-aside"><div class="aside-label">Your assignment</div><p>${esc(runnableCopy)}</p>
+        ${ch.runnable ? `<div class="command-card"><span>Grade this chapter</span><code>${esc(ch.check)}</code></div>
+          <a class="aside-action" href="#${view}">Open live evidence <span>→</span></a>`
+          : `<div class="roadmap-card"><b>Reading preview</b><span>Runnable through Chapter ${CURRICULUM.available_through||"—"}</span></div>`}
+        <div class="coach-rule"><b>AI rule</b><span>Use your assistant as reviewer and rubber duck. You write the chapter solution.</span></div>
+      </aside></div>
+    <nav data-slot="lesson-pagination" class="lesson-pagination" aria-label="Adjacent lessons">
+      ${prev ? `<a href="#learn/${prev.number}"><span>← Previous</span><b>${esc(prev.title)}</b></a>` : `<span></span>`}
+      ${next ? `<a class="next" href="#learn/${next.number}"><span>Next →</span><b>${esc(next.title)}</b></a>` : `<span></span>`}
+    </nav>`;
+}
+
 const VIEWS = {
+  learn(d, sub){
+    return sub ? lessonReader(sub) : curriculumHome();
+  },
   // Gateway: ONE unified conversation across every channel (dashboard, telegram,
   // voice, cli) — the same loop + memory answer all of them. Each message is
   // tagged with where it came in, Hermes-style. You type in the dock on the right.
@@ -789,8 +1080,8 @@ const VIEWS = {
       ].map(([v,l,c])=>`<div class="tile"><b class="${c}">${v}</b><span>${l}</span></div>`).join("");
     return `<div class="tiles">${tiles}</div>
     <h2>Retrieval gate — the hero decision</h2>${gateSplit(s)}
-    <h2 style="margin-top:26px">Architecture — click any box <span class="arch-status"></span></h2>
-    ${archSVG(d)}
+    <h2 style="margin-top:26px">Live architecture <span class="arch-status"></span></h2>
+    <div class="arch-full">${archSVG(d)}</div>${archCompact(d)}
     <h2>Latest turn</h2>${d.turns.length?turnCard(d.turns[0]):'<div class="card empty">no turns yet — talk to Waku first</div>'}`;
   },
   loop(d){
@@ -798,10 +1089,11 @@ const VIEWS = {
   },
   memory(d, sub){
     sub = sub || "overview";
-    const tabs = [["overview","Overview"],["semantic","Semantic",d.facts.length],
+    const tabs = [["overview","Overview"],["journal","Learning Journal",(d.learning_journal||[]).length],["semantic","Semantic",d.facts.length],
       ["episodic","Episodic",d.episodes.length],["skills","Skills",d.skills.length],
       ["soul","SOUL"],["consolidation","Consolidation",d.chat_pending]];
     let h = subtabBar("memory", tabs, sub);
+    if (sub==="journal") return h + memLearningJournal(d);
     if (sub==="semantic") return h + memSemantic(d);
     if (sub==="episodic") return h + memEpisodic(d);
     if (sub==="skills") return h + memSkills(d);
@@ -860,7 +1152,7 @@ const VIEWS = {
       <a class="reveal" onclick="location.hash='tools/mcp'">MCP</a>.</div>`;
     const SRC = [["flagship","Flagship task — scheduling"],["web","Web search"],
       ["self-management","Self-management — it edits its own memory"],
-      ["apple","Apple ecosystem"],["mcp","MCP servers"],["other","Other"]];
+      ["custom","Agent-authored local tools"],["apple","Apple ecosystem"],["mcp","MCP servers"],["other","Other"]];
     SRC.forEach(([key,label]) => {
       const items = t.catalog.filter(c => c.source === key);
       if (!items.length) return;
@@ -924,6 +1216,15 @@ const VIEWS = {
         [u.total_out.toLocaleString(),"tokens out · all-time",""],[u.calls.toLocaleString(),"LLM calls",""],
         [secs(s.latency_avg),"avg turn",""],[`${s.tool_errors}`,"tool errors",""],
       ].map(([v,l,c])=>`<div class="tile"><b class="${c}">${v}</b><span>${l}</span></div>`).join("")}</div>`;
+
+    const integrationEvents = d.integration_events || [];
+    h += `<h2>Integration events <span class="meta" style="font-weight:400">· providers, tools, and MCP</span></h2>`;
+    h += integrationEvents.length ? table(["when","source","operation","status","detail"], integrationEvents.slice(0,25).map(e =>
+      `<tr><td class="meta">${esc((e.created_at||"").replace("T"," ").slice(0,19))}</td>
+       <td><code>${esc(e.source)}:${esc(e.integration)}</code></td><td>${esc(e.operation)}</td>
+       <td><span class="pill ${e.status==="ok"?"pass":e.status==="error"?"fail":"skip"}">${esc(e.status)}</span></td>
+       <td class="meta">${esc(e.category||"")}${e.message?` · ${esc(e.message.slice(0,90))}`:""}</td></tr>`))
+      : `<div class="card empty">no integration events yet — call a tool or connect an MCP server</div>`;
 
     h += `<h2>Spend <span class="meta" style="font-weight:400">· permanent ledger — survives a demo reset</span></h2>`;
     h += `<div class="card"><span class="r">Every LLM call's tokens are logged to
@@ -1046,17 +1347,40 @@ async function pollEvents(){
 }
 
 let activeView = null, activeSub = null;
-const TITLES = {chat:"Chat & watch", ops:"LLM Ops",
-                database:"Database — everything Waku stores (state.db)"};
+const TITLES = {learn:"Curriculum", chat:"Chat & watch", ops:"LLM Ops", database:"Database"};
+const VIEW_SUBTITLES = {
+  overview:"live system map and latest turn",
+  gateway:"messages across every channel",
+  loop:"model decisions, tools, and turn evidence",
+  memory:"journal context and durable memory",
+  tools:"capabilities and authority boundaries",
+  database:"raw SQLite state and schemas",
+  ops:"latency, usage, retrieval, and release evidence",
+  settings:"providers, models, credentials, and runtime",
+};
 function render(){
   if (!D) return;
-  const [v, subRaw] = (location.hash||"#overview").slice(1).split("/");
-  const sub = subRaw || null;
-  const view = VIEWS[v] ? v : "overview";
+  const parts = (location.hash||"#learn").slice(1).split("/");
+  const v = parts.shift();
+  const sub = parts.join("/") || null;
+  const view = VIEWS[v] ? v : "learn";
   const subChanged = sub !== activeSub || view !== activeView;
-  document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on", a.dataset.v===view));
+  document.getElementById("view").classList.toggle("legacy-view", view !== "learn");
+  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on", a.dataset.v===view));
   document.getElementById("title").textContent = TITLES[view] || view[0].toUpperCase()+view.slice(1);
-  if (view === "overview"){
+  const curriculumHost = document.getElementById("curriculum-react-root");
+  if (view !== "learn" && curriculumHost && window.WakuCurriculum){
+    window.WakuCurriculum.unmount(curriculumHost);
+  }
+  if (view === "learn" && window.WakuCurriculum){
+    const host = document.getElementById("view");
+    let mount = document.getElementById("curriculum-react-root");
+    if (!mount){
+      host.innerHTML = '<div id="curriculum-react-root"></div>';
+      mount = document.getElementById("curriculum-react-root");
+    }
+    window.WakuCurriculum.render(mount, CURRICULUM, sub);
+  } else if (view === "overview"){
     // don't rebuild mid-animation or the glowing SVG gets wiped
     if (activeView !== "overview" || !animating){ document.getElementById("view").innerHTML = VIEWS.overview(D); }
   } else if ((view === "memory" || view === "settings" || view === "database") && editing && !subChanged){
@@ -1065,25 +1389,37 @@ function render(){
     editing = false;
     document.getElementById("view").innerHTML = VIEWS[view](D, sub);
   }
+  if (subChanged) document.querySelector("main").scrollTop = 0;
   activeView = view; activeSub = sub;
+  if (!CHAT.length) syncChatLogs();
   document.getElementById("model").textContent = `${D.provider} · ${D.model}`;
+  const dockModel = document.getElementById("dock-model");
+  if (dockModel) dockModel.textContent = `${D.provider} · ${D.model}`;
   document.getElementById("n-gw").textContent = (D.chat_log||[]).length;
   document.getElementById("n-loop").textContent = D.stats.turns;
   document.getElementById("n-mem").textContent = D.facts.length + D.episodes.length;
   document.getElementById("n-tools").textContent = D.calendar.length + D.outbox.length;
   document.getElementById("n-db").textContent = (D.db && D.db.all_tables.length) || "";
   document.getElementById("n-ops").textContent = D.stats.tool_errors || (D.eval_report ? "" : "!");
+  const current = CURRICULUM && CURRICULUM.current;
+  document.getElementById("n-learn").textContent = current ? current : "✓";
 }
 let lastFetch = Date.now();
 function tickLive(){
   if (!D) return;
   const ago = Math.round((Date.now()-lastFetch)/1000);
-  document.getElementById("sub").innerHTML =
-    `<span class="live"><span class="dot"></span>live</span> · updated ${ago}s ago · ${esc(D.home)}`;
+  const route = (location.hash||"#learn").slice(1).split("/")[0];
+  const learning = route === "learn";
+  document.getElementById("sub").innerHTML = learning
+    ? `self-directed · repository-backed progress · current chapter ${esc(CURRICULUM&&CURRICULUM.current||"—")}`
+    : `<span class="live"><span class="dot"></span>live</span> · updated ${ago}s ago · ${esc(VIEW_SUBTITLES[route]||"agent evidence workspace")}`;
 }
 async function refresh(){
   try {
-    D = await (await fetch("/api/data")).json(); lastFetch = Date.now();
+    const requests = [fetch("/api/data").then(r=>r.json())];
+    if (!CURRICULUM) requests.push(fetch("/api/curriculum").then(r=>r.json()));
+    const results = await Promise.all(requests);
+    D = results[0]; if (results[1]) CURRICULUM = results[1]; lastFetch = Date.now();
     render(); tickLive();
     syncLiveView();   // live-update an opened conversation (e.g. new phone messages)
   } catch(e){ /* server restarting — keep showing last data */ }
@@ -1115,11 +1451,21 @@ function wireChrome(){
   wireResizer("nav-resizer", "--nav-w", "navW", false, 150, 380);
   wireResizer("dock-resizer", "--dock-w", "dockW", true, 260, 680);
   // hide / show the sidebar
-  const setNav = v => { document.body.classList.toggle("nav-hidden", v); localStorage.setItem("navHidden", v?"1":"0"); };
+  const setNav = (v, persist=true) => {
+    document.body.classList.toggle("nav-hidden", v);
+    if (persist) localStorage.setItem("navHidden", v?"1":"0");
+  };
   const nt = document.getElementById("nav-toggle"), nr = document.getElementById("nav-reopen");
   if (nt) nt.onclick = () => setNav(true);
   if (nr) nr.onclick = () => setNav(false);
-  setNav(localStorage.getItem("navHidden") === "1");
+  const narrowNav = window.matchMedia("(max-width:650px)");
+  setNav(narrowNav.matches || localStorage.getItem("navHidden") === "1", false);
+  document.querySelectorAll("#nav a").forEach(link => link.addEventListener("click", () => {
+    if (narrowNav.matches) setNav(true, false);
+  }));
+  narrowNav.addEventListener("change", event => {
+    if (event.matches) setNav(true, false);
+  });
 }
 
 // --- voice on the dashboard: record in the browser, transcribe on the server
@@ -1188,6 +1534,7 @@ function encodeWAV(chunks, rate){
 function wireMic(){ const b = document.getElementById("mic"); if (b) b.onclick = toggleMic; }
 
 window.addEventListener("hashchange", render);
+window.addEventListener("waku-curriculum-ready", render);
 window.__hold = (v)=>{ animating = v; };   // test hook: freeze the diagram
 wireDock(); wireChrome(); wireMic();
 refresh(); setInterval(refresh, 5000); setInterval(tickLive, 1000);

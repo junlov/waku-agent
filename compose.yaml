@@ -1,0 +1,29 @@
+name: waku-training
+
+services:
+  waku:
+    build: .
+    image: waku-agent-training:local
+    container_name: waku-training
+    ports:
+      - "127.0.0.1:7777:7777"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - waku-training-workspace:/workspace
+      - waku-training-data:/var/lib/waku
+    networks:
+      - waku-integrations
+
+volumes:
+  waku-training-workspace:
+    name: waku-training-workspace
+  waku-training-data:
+    name: waku-training-data
+
+networks:
+  waku-integrations:
+    name: waku-integrations

@@ -22,9 +22,6 @@ PLANNED = [
      "description": "Spawn a fresh agent run for a self-contained subtask and return its "
                     "result — the whiteboard's Sub-Agent boxes. Left out to keep the core "
                     "single-agent and readable."},
-    {"name": "run_command", "box": "Terminal tool",
-     "description": "Run a shell command in a sandbox and read the output — Hermes's 'Terminal' "
-                    "tool. Needs a real sandbox + safety surface first."},
     {"name": "browse_web", "box": "Browser tool",
      "description": "Open a page and read/click it — Hermes's 'Browser' tool. (search_web already "
                     "covers read-only web lookups.)"},

@@ -11,8 +11,22 @@ away. What persists lives in waku/memory. Working memory =
 
 from __future__ import annotations
 
+import os
 
 from waku.config import Settings
+
+SANDBOX_CONTEXT = """\
+Sandbox authority:
+- run_command has full shell and file authority inside the persistent /workspace.
+  Inspect, diagnose, edit, and test the Waku harness there instead of claiming
+  you cannot execute commands.
+- For risky repairs, inspect git diff first, make the smallest repair, run the
+  nearest tests, then request a supervised restart with
+  `python /seed/scripts/sandbox_control.py restart --delay 15`. The supervisor
+  promotes a healthy restart or restores the last-known-good workspace.
+- The curriculum belongs to the learner. Never use run_command to implement an
+  unpassed chapter solution. Harness plumbing is fair game; lesson work is not.
+"""
 
 DEFAULT_SOUL = """\
 You are Waku, a personal assistant running locally on your user's laptop.
@@ -28,6 +42,8 @@ Rules:
 - When the user shares something durable about a person, project, or preference,
   use save_note to remember it.
 - When asked to message someone, use send_message (it drafts to a local outbox).
+- Use run_curriculum_check to measure before proposing changes and grade after
+  learner work. Never treat a green check as permission to mark a chapter done.
 - If memory context is provided below, trust it — it came from your own store.
 - Call each tool at most once per request. Your history shows [tools used: ...]
   lines for past turns — if a tool already ran, do NOT run it again; answer
@@ -69,6 +85,9 @@ class Session:
         now = datetime.now().astimezone()
         parts = [load_soul(self.settings),
                  f"\nRight now it is {now:%A, %Y-%m-%d %H:%M} ({now:%Z}, UTC{now:%z})."]
+
+        if os.getenv("WAKU_SANDBOX", "").lower() in ("1", "true", "yes"):
+            parts.append("\n" + SANDBOX_CONTEXT)
 
         if self.memory is not None:
             # Hero moment #1: a cheap judge decides IF we retrieve at all —

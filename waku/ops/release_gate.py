@@ -18,7 +18,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()  # the key check below must see .env, same as the app does
+load_dotenv(os.getenv("WAKU_ENV_FILE", "").strip() or None)
 
 REPO = Path(__file__).resolve().parents[2]
 
