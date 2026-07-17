@@ -1,0 +1,226 @@
+{
+  "version": 2,
+  "kind": "phase-incident",
+  "id": "phase-incident-service",
+  "phase": "service",
+  "state": "preview",
+  "title": "Diagnose and roll a degraded fleet",
+  "scenario": "Find a hidden regression, replace a worker under load, and make rollout policy stop a worse candidate.",
+  "prerequisites": [
+    "Pass every chapter in the service phase.",
+    "Wait until the cumulative incident fixture and isolated replay checkpoint are published."
+  ],
+  "outcomes": [
+    "Reproduce a compound failure spanning the phase's chapter boundaries.",
+    "Explain which component owns each invariant and recovery action.",
+    "Prove the chapter repairs compose without hidden shared state or authority."
+  ],
+  "objectives": [
+    "Observe the compound incident through declared evidence only.",
+    "Defend a cross-chapter decision before changing the system.",
+    "Prove the integrated repair and curate a transferable recap."
+  ],
+  "environment": {
+    "workspace": "isolated-replay-worktree",
+    "provider": "sim",
+    "publication": "preview-only",
+    "editable_files": [],
+    "service_profiles": []
+  },
+  "steps": [
+    {
+      "id": "incident-service-observe",
+      "phase": "observe",
+      "title": "Observe",
+      "content": [
+        "docs/scale/08-observability.md",
+        "docs/scale/09-horizontal-deploy.md",
+        "docs/scale/10-evals-at-scale.md"
+      ],
+      "body": "### Observe\n\nRun the cumulative incident only after its deterministic fixture is published: Find a hidden regression, replace a worker under load, and make rollout policy stop a worse candidate.",
+      "success_criteria": "The published incident can be reproduced and its initial evidence can be preserved without changing the system.",
+      "actions": [
+        {
+          "id": "incident-service-observe-planned-action",
+          "description": "Plan the observe activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "incident-service-observe-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the observe step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "incident-service-observe-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/08-observability.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "incident-service-observe-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "incident-service-explain",
+      "phase": "explain",
+      "title": "Explain",
+      "content": [
+        "docs/scale/08-observability.md",
+        "docs/scale/09-horizontal-deploy.md",
+        "docs/scale/10-evals-at-scale.md"
+      ],
+      "body": "### Explain\n\nMap the failure across the phase's chapter boundaries and assign every state, authority, retry, and recovery owner.",
+      "success_criteria": "The learner names the failing boundary, affected invariant, and evidence that supports the explanation.",
+      "actions": [
+        {
+          "id": "incident-service-explain-planned-action",
+          "description": "Plan the explain activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "incident-service-explain-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the explain step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "incident-service-explain-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/08-observability.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "incident-service-explain-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "incident-service-decide",
+      "phase": "decide",
+      "title": "Decide",
+      "content": [
+        "docs/scale/08-observability.md",
+        "docs/scale/09-horizontal-deploy.md",
+        "docs/scale/10-evals-at-scale.md",
+        "docs/scale/labs/templates/decision.md"
+      ],
+      "body": "### Decide\n\nUse safe correlated telemetry to prove stateless replacement and evidence-driven promotion.",
+      "success_criteria": "A learner-authored decision compares viable options and records the chosen tradeoff without copying a reference solution.",
+      "actions": [
+        {
+          "id": "incident-service-decide-planned-action",
+          "description": "Plan the decide activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "incident-service-decide-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the decide step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "incident-service-decide-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/08-observability.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "incident-service-decide-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "incident-service-repair",
+      "phase": "repair",
+      "title": "Repair",
+      "content": [
+        "docs/scale/08-observability.md",
+        "docs/scale/09-horizontal-deploy.md",
+        "docs/scale/10-evals-at-scale.md"
+      ],
+      "body": "### Repair\n\nThis step remains unavailable until the cumulative checkpoint and deterministic grader are published.",
+      "success_criteria": "The planned repair scope is bounded to this chapter and remains unavailable until the checkpoint and red instrument are published.",
+      "actions": [
+        {
+          "id": "incident-service-repair-planned-action",
+          "description": "This step remains unavailable until the cumulative checkpoint and deterministic grader are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "incident-service-repair-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the repair step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "incident-service-repair-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/08-observability.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "incident-service-repair-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "incident-service-prove",
+      "phase": "prove",
+      "title": "Prove",
+      "content": [
+        "docs/scale/08-observability.md",
+        "docs/scale/09-horizontal-deploy.md",
+        "docs/scale/10-evals-at-scale.md",
+        "docs/scale/labs/templates/curated-recap.md"
+      ],
+      "body": "### Prove\n\nRun the cumulative grader, exercise replacement or rollback, and select redacted evidence for the phase recap.",
+      "success_criteria": "The planned deterministic and realistic-path proof is named without publishing a grader or executable command.",
+      "actions": [
+        {
+          "id": "incident-service-prove-planned-action",
+          "description": "Plan the prove activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "incident-service-prove-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the prove step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "incident-service-prove-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/08-observability.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "incident-service-prove-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    }
+  ],
+  "completion": {
+    "planned_proof": "After publication, prove Diagnose and roll a degraded fleet phase incident with its deterministic incident plus a realistic replay in an isolated worktree.",
+    "planned_decision_artifacts": [
+      "A learner-authored Diagnose and roll a degraded fleet phase incident decision record that compares viable approaches and preserves earlier invariants."
+    ],
+    "planned_reflection_fields": [
+      "observed_failure",
+      "evidence_explanation",
+      "decision_and_tradeoff",
+      "proof_and_remaining_risk"
+    ],
+    "recap_destination": "docs/scale/recaps/incidents/service.md"
+  },
+  "recap": {
+    "template": "docs/scale/labs/templates/curated-recap.md",
+    "destination": "docs/scale/recaps/incidents/service.md"
+  }
+}

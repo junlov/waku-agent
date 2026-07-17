@@ -79,11 +79,13 @@ def _repository_tags(root: Path) -> set[str]:
 
 def curriculum_catalog(root: Path = ROOT, tags: set[str] | None = None) -> dict:
     """Return the lesson catalog and git-backed learner state for the dashboard."""
+    from waku.ops.lab_manifest import load_curriculum_contract
+
     if tags is None:
         tags = _repository_tags(root)
 
     docs = root / "docs/scale"
-    contract = json.loads((docs / "curriculum.json").read_text())
+    contract, labs = load_curriculum_contract(root, known_tags=tags)
     metadata = {chapter["number"]: chapter for chapter in contract["chapters"]}
     chapters = []
     available = []
@@ -126,7 +128,7 @@ def curriculum_catalog(root: Path = ROOT, tags: set[str] | None = None) -> dict:
             "competency": metadata[number]["competency"],
             "evidence_view": metadata[number]["evidence_view"],
             "knowledge_checks": metadata[number]["knowledge_checks"],
-            "lab": metadata[number].get("lab"),
+            "lab": labs[number],
             "brief": brief,
             "tracks": {
                 "architect": architect_path.read_text() if architect_path else "",

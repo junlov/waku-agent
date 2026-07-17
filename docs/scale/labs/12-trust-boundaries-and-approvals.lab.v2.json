@@ -1,0 +1,227 @@
+{
+  "version": 2,
+  "kind": "chapter",
+  "id": "chapter-12-trust-boundaries-and-approvals",
+  "chapter": "12",
+  "phase": "behavior",
+  "state": "preview",
+  "title": "Trust boundaries and approvals",
+  "scenario": "Forge tenant identity and approval claims through every model-visible channel.",
+  "brief": "docs/scale/12-trust-boundaries-and-approvals.md",
+  "tracks": {
+    "architect": "docs/scale/tracks/12-trust-boundaries-and-approvals-architect.md",
+    "engineer": "docs/scale/tracks/12-trust-boundaries-and-approvals-ai-engineer.md"
+  },
+  "prerequisites": [
+    "Complete the preceding chapter and preserve its learner-owned pass evidence.",
+    "Wait until the Chapter 12 deterministic red instrument and cumulative start checkpoint are published."
+  ],
+  "outcomes": [
+    "Separate prompt-visible data from trusted run authority.",
+    "Bind approval to the exact proposed action.",
+    "Prove every forged path is denied and audited."
+  ],
+  "objectives": [
+    "Separate prompt-visible data from trusted run authority.",
+    "Bind approval to the exact proposed action.",
+    "Prove every forged path is denied and audited."
+  ],
+  "environment": {
+    "workspace": "persistent-sandbox",
+    "provider": "sim",
+    "publication": "preview-only",
+    "editable_files": [],
+    "service_profiles": []
+  },
+  "steps": [
+    {
+      "id": "12-observe",
+      "phase": "observe",
+      "title": "Observe",
+      "content": [
+        "docs/scale/12-trust-boundaries-and-approvals.md",
+        "docs/scale/tracks/12-trust-boundaries-and-approvals-ai-engineer.md"
+      ],
+      "body": "### Observe\n\nReproduce and preserve evidence for this incident once its deterministic instrument is published: Forge tenant identity and approval claims through every model-visible channel.",
+      "success_criteria": "The published incident can be reproduced and its initial evidence can be preserved without changing the system.",
+      "actions": [
+        {
+          "id": "12-observe-planned-action",
+          "description": "Plan the observe activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "12-observe-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the observe step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "12-observe-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/12-trust-boundaries-and-approvals.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "12-observe-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "12-explain",
+      "phase": "explain",
+      "title": "Explain",
+      "content": [
+        "docs/scale/12-trust-boundaries-and-approvals.md",
+        "docs/scale/tracks/12-trust-boundaries-and-approvals-ai-engineer.md"
+      ],
+      "body": "### Explain\n\nExplain the observed control-flow, state, authority, and failure boundaries without reading or changing a future solution.",
+      "success_criteria": "The learner names the failing boundary, affected invariant, and evidence that supports the explanation.",
+      "actions": [
+        {
+          "id": "12-explain-planned-action",
+          "description": "Plan the explain activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "12-explain-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the explain step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "12-explain-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/12-trust-boundaries-and-approvals.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "12-explain-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "12-decide",
+      "phase": "decide",
+      "title": "Decide",
+      "content": [
+        "docs/scale/12-trust-boundaries-and-approvals.md",
+        "docs/scale/tracks/12-trust-boundaries-and-approvals-architect.md",
+        "docs/scale/labs/templates/decision.md"
+      ],
+      "body": "### Decide\n\nTreat the model as a proposer; bind trusted execution to external authority.",
+      "success_criteria": "A learner-authored decision compares viable options and records the chosen tradeoff without copying a reference solution.",
+      "actions": [
+        {
+          "id": "12-decide-planned-action",
+          "description": "Plan the decide activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "12-decide-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the decide step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "12-decide-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/12-trust-boundaries-and-approvals.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "12-decide-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "12-repair",
+      "phase": "repair",
+      "title": "Repair",
+      "content": [
+        "docs/scale/12-trust-boundaries-and-approvals.md",
+        "docs/scale/tracks/12-trust-boundaries-and-approvals-ai-engineer.md"
+      ],
+      "body": "### Repair\n\nThis step remains unavailable until the chapter checkpoint and deterministic grader are published.",
+      "success_criteria": "The planned repair scope is bounded to this chapter and remains unavailable until the checkpoint and red instrument are published.",
+      "actions": [
+        {
+          "id": "12-repair-planned-action",
+          "description": "This step remains unavailable until the chapter checkpoint and deterministic grader are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "12-repair-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the repair step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "12-repair-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/12-trust-boundaries-and-approvals.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "12-repair-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "12-prove",
+      "phase": "prove",
+      "title": "Prove",
+      "content": [
+        "docs/scale/12-trust-boundaries-and-approvals.md",
+        "docs/scale/tracks/12-trust-boundaries-and-approvals-ai-engineer.md",
+        "docs/scale/labs/templates/curated-recap.md"
+      ],
+      "body": "### Prove\n\nRun the published grader, replay the closest realistic user path, and curate only redacted evidence.",
+      "success_criteria": "The planned deterministic and realistic-path proof is named without publishing a grader or executable command.",
+      "actions": [
+        {
+          "id": "12-prove-planned-action",
+          "description": "Plan the prove activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "12-prove-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the prove step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "12-prove-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/12-trust-boundaries-and-approvals.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "12-prove-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    }
+  ],
+  "completion": {
+    "planned_proof": "After publication, prove Chapter 12 with its deterministic incident plus a realistic replay in an isolated worktree.",
+    "planned_decision_artifacts": [
+      "A learner-authored Chapter 12 decision record that compares viable approaches and preserves earlier invariants."
+    ],
+    "planned_reflection_fields": [
+      "observed_failure",
+      "evidence_explanation",
+      "decision_and_tradeoff",
+      "proof_and_remaining_risk"
+    ],
+    "recap_destination": "docs/scale/recaps/12-trust-boundaries-and-approvals.md"
+  },
+  "recap": {
+    "template": "docs/scale/labs/templates/curated-recap.md",
+    "destination": "docs/scale/recaps/12-trust-boundaries-and-approvals.md"
+  }
+}

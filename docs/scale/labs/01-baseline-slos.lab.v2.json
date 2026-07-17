@@ -1,0 +1,307 @@
+{
+  "version": 2,
+  "kind": "chapter",
+  "id": "chapter-01-baseline-slos",
+  "chapter": "01",
+  "phase": "measure",
+  "state": "runnable",
+  "title": "Define useful SLOs",
+  "scenario": "Watch a single process-wide lock flatten throughput as tenant concurrency rises.",
+  "brief": "docs/scale/01-baseline-slos.md",
+  "tracks": {
+    "architect": "docs/scale/tracks/01-baseline-slos-architect.md",
+    "engineer": "docs/scale/tracks/01-baseline-slos-ai-engineer.md"
+  },
+  "prerequisites": [
+    "Chapter 00 harness evidence is trusted.",
+    "Read PRODUCT-SCENARIO.md and maintain your own SCENARIO.md before choosing targets.",
+    "Do not repair concurrency in this chapter."
+  ],
+  "outcomes": [
+    "Separate queueing latency from simulated model latency.",
+    "Define workload-scoped p95, error, tenant-isolation, and memory invariants.",
+    "Commit a service promise before Chapter 02 encodes it as a gate."
+  ],
+  "objectives": [
+    "Reproduce the baseline latency ramp before changing code.",
+    "Name the workload boundary and service promise.",
+    "Capture evidence that distinguishes queueing from model latency."
+  ],
+  "environment": {
+    "workspace": "persistent-sandbox",
+    "provider": "sim",
+    "network_required": false,
+    "checkpoint": "chapter-01-start",
+    "editable_files": [
+      "docs/scale/SCENARIO.md",
+      "docs/scale/SLO.md",
+      "docs/scale/PROGRESS.md"
+    ],
+    "service_profiles": []
+  },
+  "steps": [
+    {
+      "id": "01-observe",
+      "phase": "observe",
+      "title": "Measure the latency ramp",
+      "content": [
+        "docs/scale/01-baseline-slos.md",
+        "docs/scale/tracks/01-baseline-slos-ai-engineer.md"
+      ],
+      "body": "### Measure the latency ramp\n\nRun the baseline at 1, 2, 5, and 10 tenants and preserve latency, throughput, error, and correctness evidence before editing anything.",
+      "success_criteria": "A redacted measurement from the declared public-path action is selected as evidence.",
+      "actions": [
+        "measure"
+      ],
+      "grader": {
+        "kind": "observe-evidence",
+        "requires": [
+          "A redacted measurement from the declared public-path action is selected as evidence."
+        ]
+      },
+      "hints": [
+        {
+          "id": "01-observe-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the observe step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "01-observe-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/01-baseline-slos.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "01-observe-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "01-explain",
+      "phase": "explain",
+      "title": "Locate the serialization boundary",
+      "content": [
+        "docs/scale/01-baseline-slos.md",
+        "docs/scale/tracks/01-baseline-slos-ai-engineer.md"
+      ],
+      "body": "### Locate the serialization boundary\n\nExplain why throughput remains flat while correctness stays green, and distinguish ingress, execution, and durable-terminal clocks.",
+      "success_criteria": "The learner names the failing boundary, affected invariant, and evidence that supports the explanation.",
+      "actions": [
+        "record-explanation"
+      ],
+      "grader": {
+        "kind": "explain-evidence",
+        "requires": [
+          "The learner names the failing boundary, affected invariant, and evidence that supports the explanation."
+        ]
+      },
+      "hints": [
+        {
+          "id": "01-explain-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the explain step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "01-explain-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/01-baseline-slos.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "01-explain-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "01-decide",
+      "phase": "decide",
+      "title": "Write the service contract",
+      "content": [
+        "docs/scale/PRODUCT-SCENARIO.md",
+        "docs/scale/SCENARIO.md",
+        "docs/scale/tracks/01-baseline-slos-architect.md",
+        "docs/scale/labs/templates/decision.md"
+      ],
+      "body": "### Write the service contract\n\nUse the product scenario and measured baseline to choose defensible targets and record them in docs/scale/SLO.md.",
+      "success_criteria": "A learner-authored decision compares viable options and records the chosen tradeoff without copying a reference solution.",
+      "actions": [
+        "record-decision"
+      ],
+      "grader": {
+        "kind": "decide-evidence",
+        "requires": [
+          "A learner-authored decision compares viable options and records the chosen tradeoff without copying a reference solution."
+        ]
+      },
+      "hints": [
+        {
+          "id": "01-decide-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the decide step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "01-decide-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/PRODUCT-SCENARIO.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "01-decide-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "01-repair",
+      "phase": "repair",
+      "title": "Commit the promise, not a concurrency fix",
+      "content": [
+        "docs/scale/01-baseline-slos.md"
+      ],
+      "body": "### Commit the promise, not a concurrency fix\n\nCreate only the required SLO decision artifact. Leave the global-lock repair for Chapter 02 so its failure instrument remains honest.",
+      "success_criteria": "The workspace diff remains inside this chapter's allowed scope and preserves all earlier invariants.",
+      "actions": [
+        "confirm-scope"
+      ],
+      "grader": {
+        "kind": "repair-evidence",
+        "requires": [
+          "The workspace diff remains inside this chapter's allowed scope and preserves all earlier invariants."
+        ]
+      },
+      "hints": [
+        {
+          "id": "01-repair-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the repair step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "01-repair-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/01-baseline-slos.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "01-repair-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "01-prove",
+      "phase": "prove",
+      "title": "Validate the artifact and reasoning",
+      "content": [
+        "docs/scale/01-baseline-slos.md",
+        "docs/scale/labs/templates/curated-recap.md"
+      ],
+      "body": "### Validate the artifact and reasoning\n\nRun the chapter check, explain the flat-throughput result in one paragraph, and curate evidence for the recap.",
+      "success_criteria": "The deterministic check is green and the learner selects redacted evidence, decision artifacts, and reflection for the recap.",
+      "actions": [
+        "verify",
+        "export-recap"
+      ],
+      "grader": {
+        "kind": "deterministic-check",
+        "requires": [
+          "The deterministic check is green and the learner selects redacted evidence, decision artifacts, and reflection for the recap."
+        ]
+      },
+      "hints": [
+        {
+          "id": "01-prove-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the prove step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "01-prove-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/01-baseline-slos.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "01-prove-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "measure",
+      "step": "01-observe",
+      "label": "Run measurement",
+      "command": "make scale-01",
+      "exec": "{python} -m pytest -q -s scale/tests/test_01_baseline.py",
+      "kind": "command"
+    },
+    {
+      "id": "verify",
+      "step": "01-prove",
+      "label": "Run verification",
+      "command": "make check-01",
+      "exec": "{python} -m pytest -q -s scale/tests/test_01_baseline.py && {python} scripts/curriculum.py validate 01",
+      "kind": "command"
+    },
+    {
+      "id": "record-explanation",
+      "kind": "journal",
+      "label": "Record the evidence explanation"
+    },
+    {
+      "id": "record-decision",
+      "kind": "editor",
+      "label": "Write the decision artifact"
+    },
+    {
+      "id": "confirm-scope",
+      "kind": "review",
+      "label": "Review the chapter scope and diff"
+    },
+    {
+      "id": "export-recap",
+      "kind": "export",
+      "label": "Export the curated recap"
+    }
+  ],
+  "grader": "make check-01",
+  "completion": {
+    "deterministic_check": {
+      "action": "verify",
+      "command": "make check-01"
+    },
+    "decision_artifacts": [
+      {
+        "path": "docs/scale/SCENARIO.md",
+        "type": "product-scenario"
+      },
+      {
+        "path": "docs/scale/SLO.md",
+        "type": "service-level-objective"
+      }
+    ],
+    "reflection_fields": [
+      "observed_failure",
+      "evidence_explanation",
+      "decision_and_tradeoff",
+      "proof_and_remaining_risk"
+    ],
+    "recap_destination": "docs/scale/recaps/01-baseline-slos.md",
+    "artifacts": [
+      "docs/scale/SLO.md containing the required workload targets and correctness invariants.",
+      "A selected baseline measurement attached to the Chapter 01 journal.",
+      "A paragraph explaining flat throughput without proposing the Chapter 02 repair."
+    ],
+    "reflections": [
+      "Which evidence separates queueing collapse from model latency?",
+      "Why are the chosen p95 targets defensible for this product scenario?",
+      "Which correctness invariant is never tradable for throughput?"
+    ]
+  },
+  "recap": {
+    "template": "docs/scale/labs/templates/curated-recap.md",
+    "destination": "docs/scale/recaps/01-baseline-slos.md"
+  }
+}

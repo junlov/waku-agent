@@ -9,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from waku.ops.lab_manifest import LabManifestError, load_curriculum_contract
+
 CHAPTERS = tuple(f"{number:02d}" for number in range(17))
 
 
@@ -80,7 +82,24 @@ def validate_artifacts(chapter: str, root: Path) -> int:
     return 0
 
 
+def validate_manifests(root: Path, *, quiet: bool = False) -> int:
+    try:
+        contract, labs = load_curriculum_contract(root, known_tags=repository_tags(root))
+    except LabManifestError as error:
+        for message in str(error).splitlines():
+            print(f"manifest: FAILING: {message}", file=sys.stderr)
+        return 1
+    if not quiet:
+        print(
+            f"lab manifests: passing ({len(labs)} chapters, "
+            f"{len(contract['phases'])} phase incidents)"
+        )
+    return 0
+
+
 def describe_current(root: Path, number_only: bool) -> int:
+    if validate_manifests(root, quiet=True):
+        return 1
     tags = repository_tags(root)
     current = current_chapter(tags)
     if number_only:
@@ -192,6 +211,10 @@ def build_parser() -> argparse.ArgumentParser:
     validate = subparsers.add_parser("validate", help="validate a chapter's written artifacts")
     validate.add_argument("chapter", choices=CHAPTERS)
 
+    subparsers.add_parser(
+        "validate-manifests", help="validate all chapter and phase-incident lab manifests"
+    )
+
     complete = subparsers.add_parser(
         "complete", help="run the chapter check and record learner-owned pass evidence"
     )
@@ -204,6 +227,8 @@ def main() -> int:
     root = Path(__file__).resolve().parent.parent
     if args.command == "current":
         return describe_current(root, args.number)
+    if args.command == "validate-manifests":
+        return validate_manifests(root)
     if args.command == "validate":
         return validate_artifacts(args.chapter, root)
     if args.command == "begin":

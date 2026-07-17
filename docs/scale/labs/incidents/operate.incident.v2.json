@@ -1,0 +1,231 @@
+{
+  "version": 2,
+  "kind": "phase-incident",
+  "id": "phase-incident-operate",
+  "phase": "operate",
+  "state": "preview",
+  "title": "Burst, failure, and spend incident",
+  "scenario": "Apply a burst to fat state while the provider degrades and one tenant attempts to exhaust spend.",
+  "prerequisites": [
+    "Pass every chapter in the operate phase.",
+    "Wait until the cumulative incident fixture and isolated replay checkpoint are published."
+  ],
+  "outcomes": [
+    "Reproduce a compound failure spanning the phase's chapter boundaries.",
+    "Explain which component owns each invariant and recovery action.",
+    "Prove the chapter repairs compose without hidden shared state or authority."
+  ],
+  "objectives": [
+    "Observe the compound incident through declared evidence only.",
+    "Defend a cross-chapter decision before changing the system.",
+    "Prove the integrated repair and curate a transferable recap."
+  ],
+  "environment": {
+    "workspace": "isolated-replay-worktree",
+    "provider": "sim",
+    "publication": "preview-only",
+    "editable_files": [],
+    "service_profiles": []
+  },
+  "steps": [
+    {
+      "id": "incident-operate-observe",
+      "phase": "observe",
+      "title": "Observe",
+      "content": [
+        "docs/scale/04-durable-state.md",
+        "docs/scale/05-queueing-backpressure.md",
+        "docs/scale/06-provider-reliability.md",
+        "docs/scale/07-cost-abuse.md"
+      ],
+      "body": "### Observe\n\nRun the cumulative incident only after its deterministic fixture is published: Apply a burst to fat state while the provider degrades and one tenant attempts to exhaust spend.",
+      "success_criteria": "The published incident can be reproduced and its initial evidence can be preserved without changing the system.",
+      "actions": [
+        {
+          "id": "incident-operate-observe-planned-action",
+          "description": "Plan the observe activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "incident-operate-observe-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the observe step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "incident-operate-observe-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/04-durable-state.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "incident-operate-observe-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "incident-operate-explain",
+      "phase": "explain",
+      "title": "Explain",
+      "content": [
+        "docs/scale/04-durable-state.md",
+        "docs/scale/05-queueing-backpressure.md",
+        "docs/scale/06-provider-reliability.md",
+        "docs/scale/07-cost-abuse.md"
+      ],
+      "body": "### Explain\n\nMap the failure across the phase's chapter boundaries and assign every state, authority, retry, and recovery owner.",
+      "success_criteria": "The learner names the failing boundary, affected invariant, and evidence that supports the explanation.",
+      "actions": [
+        {
+          "id": "incident-operate-explain-planned-action",
+          "description": "Plan the explain activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "incident-operate-explain-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the explain step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "incident-operate-explain-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/04-durable-state.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "incident-operate-explain-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "incident-operate-decide",
+      "phase": "decide",
+      "title": "Decide",
+      "content": [
+        "docs/scale/04-durable-state.md",
+        "docs/scale/05-queueing-backpressure.md",
+        "docs/scale/06-provider-reliability.md",
+        "docs/scale/07-cost-abuse.md",
+        "docs/scale/labs/templates/decision.md"
+      ],
+      "body": "### Decide\n\nKeep authoritative state, admission, retry, and run-level budget ownership coherent under combined pressure.",
+      "success_criteria": "A learner-authored decision compares viable options and records the chosen tradeoff without copying a reference solution.",
+      "actions": [
+        {
+          "id": "incident-operate-decide-planned-action",
+          "description": "Plan the decide activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "incident-operate-decide-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the decide step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "incident-operate-decide-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/04-durable-state.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "incident-operate-decide-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "incident-operate-repair",
+      "phase": "repair",
+      "title": "Repair",
+      "content": [
+        "docs/scale/04-durable-state.md",
+        "docs/scale/05-queueing-backpressure.md",
+        "docs/scale/06-provider-reliability.md",
+        "docs/scale/07-cost-abuse.md"
+      ],
+      "body": "### Repair\n\nThis step remains unavailable until the cumulative checkpoint and deterministic grader are published.",
+      "success_criteria": "The planned repair scope is bounded to this chapter and remains unavailable until the checkpoint and red instrument are published.",
+      "actions": [
+        {
+          "id": "incident-operate-repair-planned-action",
+          "description": "This step remains unavailable until the cumulative checkpoint and deterministic grader are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "incident-operate-repair-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the repair step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "incident-operate-repair-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/04-durable-state.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "incident-operate-repair-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "incident-operate-prove",
+      "phase": "prove",
+      "title": "Prove",
+      "content": [
+        "docs/scale/04-durable-state.md",
+        "docs/scale/05-queueing-backpressure.md",
+        "docs/scale/06-provider-reliability.md",
+        "docs/scale/07-cost-abuse.md",
+        "docs/scale/labs/templates/curated-recap.md"
+      ],
+      "body": "### Prove\n\nRun the cumulative grader, exercise replacement or rollback, and select redacted evidence for the phase recap.",
+      "success_criteria": "The planned deterministic and realistic-path proof is named without publishing a grader or executable command.",
+      "actions": [
+        {
+          "id": "incident-operate-prove-planned-action",
+          "description": "Plan the prove activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "incident-operate-prove-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the prove step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "incident-operate-prove-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/04-durable-state.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "incident-operate-prove-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    }
+  ],
+  "completion": {
+    "planned_proof": "After publication, prove Burst, failure, and spend incident phase incident with its deterministic incident plus a realistic replay in an isolated worktree.",
+    "planned_decision_artifacts": [
+      "A learner-authored Burst, failure, and spend incident phase incident decision record that compares viable approaches and preserves earlier invariants."
+    ],
+    "planned_reflection_fields": [
+      "observed_failure",
+      "evidence_explanation",
+      "decision_and_tradeoff",
+      "proof_and_remaining_risk"
+    ],
+    "recap_destination": "docs/scale/recaps/incidents/operate.md"
+  },
+  "recap": {
+    "template": "docs/scale/labs/templates/curated-recap.md",
+    "destination": "docs/scale/recaps/incidents/operate.md"
+  }
+}

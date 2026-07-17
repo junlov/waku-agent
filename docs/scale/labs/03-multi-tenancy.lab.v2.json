@@ -1,0 +1,227 @@
+{
+  "version": 2,
+  "kind": "chapter",
+  "id": "chapter-03-multi-tenancy",
+  "chapter": "03",
+  "phase": "isolate",
+  "state": "preview",
+  "title": "Multi-tenancy",
+  "scenario": "Seed private tenant facts, retrieve them under load, and hunt for cross-tenant leakage.",
+  "brief": "docs/scale/03-multi-tenancy.md",
+  "tracks": {
+    "architect": "docs/scale/tracks/03-multi-tenancy-architect.md",
+    "engineer": "docs/scale/tracks/03-multi-tenancy-ai-engineer.md"
+  },
+  "prerequisites": [
+    "Complete the preceding chapter and preserve its learner-owned pass evidence.",
+    "Wait until the Chapter 03 deterministic red instrument and cumulative start checkpoint are published."
+  ],
+  "outcomes": [
+    "Reproduce a private-fact leak across tenants.",
+    "Trace trusted tenant identity through every state boundary.",
+    "Prove an abusive tenant cannot degrade its neighbors."
+  ],
+  "objectives": [
+    "Reproduce a private-fact leak across tenants.",
+    "Trace trusted tenant identity through every state boundary.",
+    "Prove an abusive tenant cannot degrade its neighbors."
+  ],
+  "environment": {
+    "workspace": "persistent-sandbox",
+    "provider": "sim",
+    "publication": "preview-only",
+    "editable_files": [],
+    "service_profiles": []
+  },
+  "steps": [
+    {
+      "id": "03-observe",
+      "phase": "observe",
+      "title": "Observe",
+      "content": [
+        "docs/scale/03-multi-tenancy.md",
+        "docs/scale/tracks/03-multi-tenancy-ai-engineer.md"
+      ],
+      "body": "### Observe\n\nReproduce and preserve evidence for this incident once its deterministic instrument is published: Seed private tenant facts, retrieve them under load, and hunt for cross-tenant leakage.",
+      "success_criteria": "The published incident can be reproduced and its initial evidence can be preserved without changing the system.",
+      "actions": [
+        {
+          "id": "03-observe-planned-action",
+          "description": "Plan the observe activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "03-observe-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the observe step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "03-observe-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/03-multi-tenancy.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "03-observe-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "03-explain",
+      "phase": "explain",
+      "title": "Explain",
+      "content": [
+        "docs/scale/03-multi-tenancy.md",
+        "docs/scale/tracks/03-multi-tenancy-ai-engineer.md"
+      ],
+      "body": "### Explain\n\nExplain the observed control-flow, state, authority, and failure boundaries without reading or changing a future solution.",
+      "success_criteria": "The learner names the failing boundary, affected invariant, and evidence that supports the explanation.",
+      "actions": [
+        {
+          "id": "03-explain-planned-action",
+          "description": "Plan the explain activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "03-explain-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the explain step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "03-explain-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/03-multi-tenancy.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "03-explain-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "03-decide",
+      "phase": "decide",
+      "title": "Decide",
+      "content": [
+        "docs/scale/03-multi-tenancy.md",
+        "docs/scale/tracks/03-multi-tenancy-architect.md",
+        "docs/scale/labs/templates/decision.md"
+      ],
+      "body": "### Decide\n\nSeparate trusted tenant authority from model-visible data and audit every scoped store.",
+      "success_criteria": "A learner-authored decision compares viable options and records the chosen tradeoff without copying a reference solution.",
+      "actions": [
+        {
+          "id": "03-decide-planned-action",
+          "description": "Plan the decide activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "03-decide-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the decide step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "03-decide-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/03-multi-tenancy.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "03-decide-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "03-repair",
+      "phase": "repair",
+      "title": "Repair",
+      "content": [
+        "docs/scale/03-multi-tenancy.md",
+        "docs/scale/tracks/03-multi-tenancy-ai-engineer.md"
+      ],
+      "body": "### Repair\n\nThis step remains unavailable until the chapter checkpoint and deterministic grader are published.",
+      "success_criteria": "The planned repair scope is bounded to this chapter and remains unavailable until the checkpoint and red instrument are published.",
+      "actions": [
+        {
+          "id": "03-repair-planned-action",
+          "description": "This step remains unavailable until the chapter checkpoint and deterministic grader are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "03-repair-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the repair step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "03-repair-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/03-multi-tenancy.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "03-repair-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "03-prove",
+      "phase": "prove",
+      "title": "Prove",
+      "content": [
+        "docs/scale/03-multi-tenancy.md",
+        "docs/scale/tracks/03-multi-tenancy-ai-engineer.md",
+        "docs/scale/labs/templates/curated-recap.md"
+      ],
+      "body": "### Prove\n\nRun the published grader, replay the closest realistic user path, and curate only redacted evidence.",
+      "success_criteria": "The planned deterministic and realistic-path proof is named without publishing a grader or executable command.",
+      "actions": [
+        {
+          "id": "03-prove-planned-action",
+          "description": "Plan the prove activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "03-prove-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the prove step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "03-prove-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/03-multi-tenancy.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "03-prove-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    }
+  ],
+  "completion": {
+    "planned_proof": "After publication, prove Chapter 03 with its deterministic incident plus a realistic replay in an isolated worktree.",
+    "planned_decision_artifacts": [
+      "A learner-authored Chapter 03 decision record that compares viable approaches and preserves earlier invariants."
+    ],
+    "planned_reflection_fields": [
+      "observed_failure",
+      "evidence_explanation",
+      "decision_and_tradeoff",
+      "proof_and_remaining_risk"
+    ],
+    "recap_destination": "docs/scale/recaps/03-multi-tenancy.md"
+  },
+  "recap": {
+    "template": "docs/scale/labs/templates/curated-recap.md",
+    "destination": "docs/scale/recaps/03-multi-tenancy.md"
+  }
+}

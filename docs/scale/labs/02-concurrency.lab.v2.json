@@ -1,0 +1,227 @@
+{
+  "version": 2,
+  "kind": "chapter",
+  "id": "chapter-02-concurrency",
+  "chapter": "02",
+  "phase": "isolate",
+  "state": "preview",
+  "title": "Concurrency",
+  "scenario": "Ramp to 50 tenants and isolate one deliberately slow session from its neighbors.",
+  "brief": "docs/scale/02-concurrency.md",
+  "tracks": {
+    "architect": "docs/scale/tracks/02-concurrency-architect.md",
+    "engineer": "docs/scale/tracks/02-concurrency-ai-engineer.md"
+  },
+  "prerequisites": [
+    "Complete the preceding chapter and preserve its learner-owned pass evidence.",
+    "Wait until the Chapter 02 deterministic red instrument and cumulative start checkpoint are published."
+  ],
+  "outcomes": [
+    "Measure cross-session blocking under concurrent turns.",
+    "Preserve ordering inside each individual session.",
+    "Prove one slow session no longer delays unrelated tenants."
+  ],
+  "objectives": [
+    "Measure cross-session blocking under concurrent turns.",
+    "Preserve ordering inside each individual session.",
+    "Prove one slow session no longer delays unrelated tenants."
+  ],
+  "environment": {
+    "workspace": "persistent-sandbox",
+    "provider": "sim",
+    "publication": "preview-only",
+    "editable_files": [],
+    "service_profiles": []
+  },
+  "steps": [
+    {
+      "id": "02-observe",
+      "phase": "observe",
+      "title": "Observe",
+      "content": [
+        "docs/scale/02-concurrency.md",
+        "docs/scale/tracks/02-concurrency-ai-engineer.md"
+      ],
+      "body": "### Observe\n\nReproduce and preserve evidence for this incident once its deterministic instrument is published: Ramp to 50 tenants and isolate one deliberately slow session from its neighbors.",
+      "success_criteria": "The published incident can be reproduced and its initial evidence can be preserved without changing the system.",
+      "actions": [
+        {
+          "id": "02-observe-planned-action",
+          "description": "Plan the observe activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "02-observe-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the observe step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "02-observe-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/02-concurrency.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "02-observe-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "02-explain",
+      "phase": "explain",
+      "title": "Explain",
+      "content": [
+        "docs/scale/02-concurrency.md",
+        "docs/scale/tracks/02-concurrency-ai-engineer.md"
+      ],
+      "body": "### Explain\n\nExplain the observed control-flow, state, authority, and failure boundaries without reading or changing a future solution.",
+      "success_criteria": "The learner names the failing boundary, affected invariant, and evidence that supports the explanation.",
+      "actions": [
+        {
+          "id": "02-explain-planned-action",
+          "description": "Plan the explain activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "02-explain-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the explain step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "02-explain-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/02-concurrency.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "02-explain-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "02-decide",
+      "phase": "decide",
+      "title": "Decide",
+      "content": [
+        "docs/scale/02-concurrency.md",
+        "docs/scale/tracks/02-concurrency-architect.md",
+        "docs/scale/labs/templates/decision.md"
+      ],
+      "body": "### Decide\n\nChoose the smallest safe serialization unit and explain its effect on the next chapter's tenant boundary.",
+      "success_criteria": "A learner-authored decision compares viable options and records the chosen tradeoff without copying a reference solution.",
+      "actions": [
+        {
+          "id": "02-decide-planned-action",
+          "description": "Plan the decide activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "02-decide-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the decide step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "02-decide-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/02-concurrency.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "02-decide-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "02-repair",
+      "phase": "repair",
+      "title": "Repair",
+      "content": [
+        "docs/scale/02-concurrency.md",
+        "docs/scale/tracks/02-concurrency-ai-engineer.md"
+      ],
+      "body": "### Repair\n\nThis step remains unavailable until the chapter checkpoint and deterministic grader are published.",
+      "success_criteria": "The planned repair scope is bounded to this chapter and remains unavailable until the checkpoint and red instrument are published.",
+      "actions": [
+        {
+          "id": "02-repair-planned-action",
+          "description": "This step remains unavailable until the chapter checkpoint and deterministic grader are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "02-repair-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the repair step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "02-repair-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/02-concurrency.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "02-repair-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "02-prove",
+      "phase": "prove",
+      "title": "Prove",
+      "content": [
+        "docs/scale/02-concurrency.md",
+        "docs/scale/tracks/02-concurrency-ai-engineer.md",
+        "docs/scale/labs/templates/curated-recap.md"
+      ],
+      "body": "### Prove\n\nRun the published grader, replay the closest realistic user path, and curate only redacted evidence.",
+      "success_criteria": "The planned deterministic and realistic-path proof is named without publishing a grader or executable command.",
+      "actions": [
+        {
+          "id": "02-prove-planned-action",
+          "description": "Plan the prove activity after this lab's cumulative checkpoint and deterministic incident are published."
+        }
+      ],
+      "hints": [
+        {
+          "id": "02-prove-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the prove step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "02-prove-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/02-concurrency.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "02-prove-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    }
+  ],
+  "completion": {
+    "planned_proof": "After publication, prove Chapter 02 with its deterministic incident plus a realistic replay in an isolated worktree.",
+    "planned_decision_artifacts": [
+      "A learner-authored Chapter 02 decision record that compares viable approaches and preserves earlier invariants."
+    ],
+    "planned_reflection_fields": [
+      "observed_failure",
+      "evidence_explanation",
+      "decision_and_tradeoff",
+      "proof_and_remaining_risk"
+    ],
+    "recap_destination": "docs/scale/recaps/02-concurrency.md"
+  },
+  "recap": {
+    "template": "docs/scale/labs/templates/curated-recap.md",
+    "destination": "docs/scale/recaps/02-concurrency.md"
+  }
+}

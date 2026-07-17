@@ -16,13 +16,6 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "curriculum chapters still embed lab objects; the guided workbench needs "
-        "a chapter manifest reference whose manifest declares exactly five steps"
-    ),
-)
 def test_curriculum_labs_reference_five_step_manifests() -> None:
     curriculum = json.loads((ROOT / "docs/scale/curriculum.json").read_text())
     expected_phases = ["observe", "explain", "decide", "repair", "prove"]

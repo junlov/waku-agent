@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 import sys
@@ -13,6 +12,7 @@ from time import monotonic
 from waku.config import load_settings
 from waku.db import connect
 from waku.ops.integrations import redact
+from waku.ops.lab_manifest import load_curriculum_contract
 
 ROOT = Path(__file__).resolve().parents[2]
 MAX_OUTPUT = 24_000
@@ -20,9 +20,8 @@ MAX_TIMEOUT = 600
 
 
 def _contract(chapter: str) -> dict:
-    curriculum = json.loads((ROOT / "docs/scale/curriculum.json").read_text())
-    row = next((item for item in curriculum["chapters"] if item["number"] == chapter), None)
-    return (row or {}).get("lab") or {}
+    _curriculum, labs = load_curriculum_contract(ROOT)
+    return labs.get(chapter) or {}
 
 
 def lab_state(chapter: str) -> dict:

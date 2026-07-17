@@ -1,0 +1,292 @@
+{
+  "version": 2,
+  "kind": "chapter",
+  "id": "chapter-00-harness",
+  "chapter": "00",
+  "phase": "measure",
+  "state": "runnable",
+  "title": "Trust the harness",
+  "scenario": "Prove the public Waku path works before trusting any later scale result.",
+  "brief": "docs/scale/00-harness.md",
+  "tracks": {},
+  "prerequisites": [
+    "Run inside the Waku training workspace with the sim provider.",
+    "Treat Chapter 00 as instrument calibration; no learner repair is required."
+  ],
+  "outcomes": [
+    "Distinguish a full public-path measurement from an inner-loop mock.",
+    "Read latency and tenant-correctness evidence from the load generator.",
+    "Explain why deterministic provider simulation is valid load-test evidence."
+  ],
+  "objectives": [
+    "Run five simulated tenants through the real harness.",
+    "Inspect the public-path evidence rather than an inner-loop mock.",
+    "Explain which correctness invariant the smoke test establishes."
+  ],
+  "environment": {
+    "workspace": "persistent-sandbox",
+    "provider": "sim",
+    "network_required": false,
+    "checkpoint": "chapter-00-start",
+    "editable_files": [
+      "docs/scale/decisions/00-harness.md",
+      "docs/scale/PROGRESS.md"
+    ],
+    "service_profiles": []
+  },
+  "steps": [
+    {
+      "id": "00-observe",
+      "phase": "observe",
+      "title": "Run the public-path smoke",
+      "content": [
+        "docs/scale/00-harness.md"
+      ],
+      "body": "### Run the public-path smoke\n\nRun the declared measurement and preserve the tenant count, latency percentiles, errors, and correctness result.",
+      "success_criteria": "A redacted measurement from the declared public-path action is selected as evidence.",
+      "actions": [
+        "measure"
+      ],
+      "grader": {
+        "kind": "observe-evidence",
+        "requires": [
+          "A redacted measurement from the declared public-path action is selected as evidence."
+        ]
+      },
+      "hints": [
+        {
+          "id": "00-observe-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the observe step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "00-observe-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/00-harness.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "00-observe-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "00-explain",
+      "phase": "explain",
+      "title": "Trace the instrument",
+      "content": [
+        "docs/scale/00-harness.md"
+      ],
+      "body": "### Trace the instrument\n\nExplain which boundary the simulator replaces and which public API, loop, memory, and tool behavior the harness still exercises.",
+      "success_criteria": "The learner names the failing boundary, affected invariant, and evidence that supports the explanation.",
+      "actions": [
+        "record-explanation"
+      ],
+      "grader": {
+        "kind": "explain-evidence",
+        "requires": [
+          "The learner names the failing boundary, affected invariant, and evidence that supports the explanation."
+        ]
+      },
+      "hints": [
+        {
+          "id": "00-explain-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the explain step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "00-explain-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/00-harness.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "00-explain-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "00-decide",
+      "phase": "decide",
+      "title": "Set the evidence rule",
+      "content": [
+        "docs/scale/00-harness.md",
+        "docs/scale/labs/templates/decision.md"
+      ],
+      "body": "### Set the evidence rule\n\nRecord what later chapters may claim from sim evidence and what would still require a real provider or user-path proof.",
+      "success_criteria": "A learner-authored decision compares viable options and records the chosen tradeoff without copying a reference solution.",
+      "actions": [
+        "record-decision"
+      ],
+      "grader": {
+        "kind": "decide-evidence",
+        "requires": [
+          "A learner-authored decision compares viable options and records the chosen tradeoff without copying a reference solution."
+        ]
+      },
+      "hints": [
+        {
+          "id": "00-decide-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the decide step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "00-decide-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/00-harness.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "00-decide-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "00-repair",
+      "phase": "repair",
+      "title": "Confirm the baseline",
+      "content": [
+        "docs/scale/00-harness.md"
+      ],
+      "body": "### Confirm the baseline\n\nDo not change application code. If the instrument itself is broken, stop and classify it as harness plumbing before any repair.",
+      "success_criteria": "The workspace diff remains inside this chapter's allowed scope and preserves all earlier invariants.",
+      "actions": [
+        "confirm-scope"
+      ],
+      "grader": {
+        "kind": "repair-evidence",
+        "requires": [
+          "The workspace diff remains inside this chapter's allowed scope and preserves all earlier invariants."
+        ]
+      },
+      "hints": [
+        {
+          "id": "00-repair-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the repair step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "00-repair-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/00-harness.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "00-repair-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    },
+    {
+      "id": "00-prove",
+      "phase": "prove",
+      "title": "Verify and recap",
+      "content": [
+        "docs/scale/00-harness.md",
+        "docs/scale/labs/templates/curated-recap.md"
+      ],
+      "body": "### Verify and recap\n\nRun the verification, select redacted evidence, and explain the correctness invariant without treating a green command as learner completion.",
+      "success_criteria": "The deterministic check is green and the learner selects redacted evidence, decision artifacts, and reflection for the recap.",
+      "actions": [
+        "verify",
+        "export-recap"
+      ],
+      "grader": {
+        "kind": "deterministic-check",
+        "requires": [
+          "The deterministic check is green and the learner selects redacted evidence, decision artifacts, and reflection for the recap."
+        ]
+      },
+      "hints": [
+        {
+          "id": "00-prove-hint-1",
+          "level": 1,
+          "prompt": "What invariant must the prove step protect, and what evidence would establish it?"
+        },
+        {
+          "id": "00-prove-hint-2",
+          "level": 2,
+          "prompt": "Use docs/scale/00-harness.md to locate the relevant boundary and evidence; do not infer or apply a future repair."
+        },
+        {
+          "id": "00-prove-hint-3",
+          "level": 3,
+          "prompt": "Compare the available options against this step's success criteria and record the tradeoff without consulting a reference solution."
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "measure",
+      "step": "00-observe",
+      "label": "Run measurement",
+      "command": "make scale-smoke",
+      "exec": "{python} -m pytest -q -s scale/tests/test_00_smoke.py",
+      "kind": "command"
+    },
+    {
+      "id": "verify",
+      "step": "00-prove",
+      "label": "Run verification",
+      "command": "make check-00",
+      "exec": "{python} -m pytest -q -s scale/tests/test_00_smoke.py",
+      "kind": "command"
+    },
+    {
+      "id": "record-explanation",
+      "kind": "journal",
+      "label": "Record the evidence explanation"
+    },
+    {
+      "id": "record-decision",
+      "kind": "editor",
+      "label": "Write the decision artifact"
+    },
+    {
+      "id": "confirm-scope",
+      "kind": "review",
+      "label": "Review the chapter scope and diff"
+    },
+    {
+      "id": "export-recap",
+      "kind": "export",
+      "label": "Export the curated recap"
+    }
+  ],
+  "grader": "make check-00",
+  "completion": {
+    "deterministic_check": {
+      "action": "verify",
+      "command": "make check-00"
+    },
+    "decision_artifacts": [
+      {
+        "path": "docs/scale/decisions/00-harness.md",
+        "type": "architecture-decision"
+      }
+    ],
+    "reflection_fields": [
+      "observed_failure",
+      "evidence_explanation",
+      "decision_and_tradeoff",
+      "proof_and_remaining_risk"
+    ],
+    "recap_destination": "docs/scale/recaps/00-harness.md",
+    "artifacts": [
+      "A selected scale-smoke result attached to the Chapter 00 journal.",
+      "A short explanation of the public-path correctness invariant."
+    ],
+    "reflections": [
+      "What did the sim provider replace without weakening the public-path proof?",
+      "What would a mocked inner loop have failed to establish?"
+    ]
+  },
+  "recap": {
+    "template": "docs/scale/labs/templates/curated-recap.md",
+    "destination": "docs/scale/recaps/00-harness.md"
+  }
+}

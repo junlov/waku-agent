@@ -8,6 +8,7 @@ import urllib.request
 from pathlib import Path
 
 from waku.ops.dashboard import _settings_env_path, curriculum_catalog
+from waku.ops.lab_manifest import load_curriculum_contract
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -38,7 +39,7 @@ def test_curriculum_catalog_exposes_truthful_progress_and_all_tracks():
 def test_curriculum_contract_covers_every_chapter_with_mastery_metadata():
     contract = json.loads(CURRICULUM_CONTRACT.read_text())
 
-    assert contract["version"] == 1
+    assert contract["version"] == 2
     assert [chapter["number"] for chapter in contract["chapters"]] == [
         f"{number:02d}" for number in range(17)
     ]
@@ -51,9 +52,11 @@ def test_curriculum_contract_covers_every_chapter_with_mastery_metadata():
 
 
 def test_every_chapter_publishes_a_truthful_learning_lab_contract():
-    contract = json.loads(CURRICULUM_CONTRACT.read_text())
+    contract, labs = load_curriculum_contract(
+        ROOT,
+        known_tags={"chapter-00-start", "chapter-00-solution", "chapter-01-start"},
+    )
 
-    labs = {chapter["number"]: chapter["lab"] for chapter in contract["chapters"]}
     assert set(labs) == {f"{number:02d}" for number in range(17)}
     for number, lab in labs.items():
         assert lab["state"] in {"runnable", "preview"}
