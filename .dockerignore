@@ -1,4 +1,5 @@
 .git
+# The sanitized `.waku-build/waku-training.bundle` remains in the build context.
 .venv
 .waku
 .beads

@@ -112,6 +112,9 @@ CREATE INDEX IF NOT EXISTS integration_events_created_idx
 CREATE TABLE IF NOT EXISTS lab_attempts (
     id INTEGER PRIMARY KEY,
     chapter TEXT NOT NULL,
+    session_id TEXT,
+    step_id TEXT,
+    action_id TEXT,
     action TEXT NOT NULL,
     command TEXT NOT NULL,
     exit_code INTEGER NOT NULL,
@@ -122,6 +125,51 @@ CREATE TABLE IF NOT EXISTS lab_attempts (
 );
 CREATE INDEX IF NOT EXISTS lab_attempts_chapter_idx
     ON lab_attempts(chapter, id DESC);
+
+-- Guided-lab experience state. Git commits and learner tags remain completion
+-- authority; these rows only make the learner's active experience resumable.
+CREATE TABLE IF NOT EXISTS lab_sessions (
+    id TEXT PRIMARY KEY,
+    chapter TEXT NOT NULL,
+    workspace_mode TEXT NOT NULL DEFAULT 'canonical',
+    current_step TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'in_progress'
+        CHECK(status IN ('in_progress', 'paused', 'proof_ready', 'passed', 'abandoned')),
+    timer_seconds INTEGER NOT NULL DEFAULT 0,
+    timer_started_at TEXT,
+    base_commit TEXT,
+    final_commit TEXT,
+    completion_ref TEXT,
+    started_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS lab_sessions_chapter_idx
+    ON lab_sessions(chapter, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS lab_checkpoints (
+    id INTEGER PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    git_ref TEXT NOT NULL,
+    checkpoint_type TEXT NOT NULL DEFAULT 'manual',
+    commit_sha TEXT,
+    metadata_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    UNIQUE(session_id, name)
+);
+CREATE INDEX IF NOT EXISTS lab_checkpoints_session_idx
+    ON lab_checkpoints(session_id, id DESC);
+
+CREATE TABLE IF NOT EXISTS lab_events (
+    id INTEGER PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    step_id TEXT,
+    details_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS lab_events_session_idx
+    ON lab_events(session_id, id);
 """
 
 
@@ -135,7 +183,14 @@ def _migrate(conn: sqlite3.Connection) -> None:
     if "source" not in cols:
         # which gateway a message came in through (cli / voice / telegram / dashboard)
         conn.execute("ALTER TABLE chat_log ADD COLUMN source TEXT DEFAULT 'cli'")
-        conn.commit()
+
+    attempt_cols = {
+        row[1] for row in conn.execute("PRAGMA table_info(lab_attempts)").fetchall()
+    }
+    for column in ("session_id", "step_id", "action_id"):
+        if column not in attempt_cols:
+            conn.execute(f"ALTER TABLE lab_attempts ADD COLUMN {column} TEXT DEFAULT NULL")
+    conn.commit()
 
 
 def connect(home: Path, check_same_thread: bool = True) -> sqlite3.Connection:

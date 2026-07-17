@@ -8,7 +8,7 @@
 # `source .venv/bin/activate` — both work, this is just fewer steps.
 PY := $(shell [ -x .venv/bin/python ] && echo .venv/bin/python || echo python)
 
-.PHONY: run voice telegram brief dashboard docker-dashboard docker-reset-workspace docker-clean trace eval eval-judge gate lint harness-test frontend-install frontend-build frontend-check
+.PHONY: run voice telegram brief dashboard sandbox-bundle docker-dashboard docker-reset-workspace docker-clean trace eval eval-judge gate lint harness-test frontend-install frontend-build frontend-check
 
 run:            ## chat with Waku in the terminal
 	$(PY) -m waku
@@ -35,7 +35,10 @@ frontend-check:  ## typecheck and rebuild the curriculum adapter
 	pnpm --dir frontend typecheck
 	pnpm --dir frontend build
 
-docker-dashboard: ## self-healing sandbox — mutable workspace + SQLite survive container recreation
+sandbox-bundle: ## sanitized committed Git seed for the persistent training workspace
+	$(PY) scripts/prepare_sandbox_bundle.py
+
+docker-dashboard: sandbox-bundle ## self-healing sandbox — mutable workspace + SQLite survive container recreation
 	docker build -t waku-agent-training:local .
 	docker volume create waku-training-data >/dev/null
 	docker volume create waku-training-workspace >/dev/null

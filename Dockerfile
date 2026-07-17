@@ -24,6 +24,8 @@ COPY evals ./evals
 COPY scale ./scale
 COPY scripts ./scripts
 COPY docs ./docs
+COPY .waku-build/waku-training.bundle /seed/waku-training.bundle
+COPY .waku-build/waku-training.bundle.json /seed/waku-training.bundle.json
 
 RUN python -m pip install --no-cache-dir '.[dev,mcp]'
 

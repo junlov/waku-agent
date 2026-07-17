@@ -16,4 +16,5 @@ dist/
 .jarvis.prerename-bak/
 .env.prerename-bak
 .jarvis.bak-*/
+.waku-build/
 uv.lock

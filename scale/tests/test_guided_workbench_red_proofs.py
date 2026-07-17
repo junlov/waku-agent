@@ -57,13 +57,6 @@ def test_dashboard_declares_editor_and_pty_workbench_apis() -> None:
         assert operation in backend
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "sandbox recovery has one global last-good snapshot; the workbench has no "
-        "chapter-scoped checkpoint and restore API contract"
-    ),
-)
 def test_workbench_declares_per_chapter_checkpoint_and_restore() -> None:
     checkpoint_modules = sorted((ROOT / "waku/ops").glob("*checkpoint*.py"))
     supervisor = (ROOT / "scripts/sandbox_supervisor.py").read_text()
@@ -78,13 +71,6 @@ def test_workbench_declares_per_chapter_checkpoint_and_restore() -> None:
     assert "GIT_INDEX_FILE" not in supervisor
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "the Docker build context excludes .git and the image seed copies only "
-        "selected paths, so a fresh training workspace has no Git history"
-    ),
-)
 def test_fresh_docker_seed_contains_git_history() -> None:
     ignored = {
         line.strip()
@@ -92,13 +78,12 @@ def test_fresh_docker_seed_contains_git_history() -> None:
         if line.strip() and not line.lstrip().startswith("#")
     }
     dockerfile = (ROOT / "Dockerfile").read_text()
-    bootstrap_files = [
-        ROOT / "scripts/sandbox_supervisor.py",
-        ROOT / "scripts/git_seed.py",
-    ]
-    bootstrap = "\n".join(path.read_text() for path in bootstrap_files if path.is_file())
+    supervisor = (ROOT / "scripts/sandbox_supervisor.py").read_text()
+    prepare = (ROOT / "scripts/prepare_sandbox_bundle.py").read_text()
 
     assert ".git" in ignored
     assert "bundle" in dockerfile.lower()
-    assert "git clone" in bootstrap or "git fetch" in bootstrap
-    assert "rev-parse" in bootstrap and "--is-inside-work-tree" in bootstrap
+    assert '"bundle", "create"' in prepare
+    assert "seed_or_upgrade_workspace" in supervisor
+    assert '"fetch"' in supervisor
+    assert "rev-parse" in supervisor and "--is-inside-work-tree" in supervisor
