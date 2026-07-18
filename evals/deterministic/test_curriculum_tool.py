@@ -23,7 +23,7 @@ def test_curriculum_tool_runs_only_the_whitelisted_measurement(monkeypatch, tmp_
         calls.append((command, kwargs))
         return subprocess.CompletedProcess(command, 0, stdout="10 tenants: p95 19.8s\n", stderr="")
 
-    monkeypatch.setattr(curriculum, "_repository_tags", lambda _root: ACTIVE_CHAPTER_01_TAGS)
+    monkeypatch.setattr(curriculum, "repository_tags", lambda _root: ACTIVE_CHAPTER_01_TAGS)
     tool = curriculum.make_tool(repo_root=tmp_path, runner=runner)
 
     output = tool.fn(chapter="01", mode="measure")
@@ -36,7 +36,7 @@ def test_curriculum_tool_runs_only_the_whitelisted_measurement(monkeypatch, tmp_
 
 
 def test_curriculum_tool_refuses_non_current_chapter(monkeypatch, tmp_path):
-    monkeypatch.setattr(curriculum, "_repository_tags", lambda _root: ACTIVE_CHAPTER_01_TAGS)
+    monkeypatch.setattr(curriculum, "repository_tags", lambda _root: ACTIVE_CHAPTER_01_TAGS)
     tool = curriculum.make_tool(
         repo_root=tmp_path,
         runner=lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("must not run")),
@@ -50,7 +50,7 @@ def test_curriculum_tool_refuses_non_current_chapter(monkeypatch, tmp_path):
 
 def test_curriculum_tool_reports_missing_instrument_honestly(monkeypatch, tmp_path):
     (tmp_path / "Makefile").write_text("check-01:\n\t@echo graded\n")
-    monkeypatch.setattr(curriculum, "_repository_tags", lambda _root: ACTIVE_CHAPTER_01_TAGS)
+    monkeypatch.setattr(curriculum, "repository_tags", lambda _root: ACTIVE_CHAPTER_01_TAGS)
     tool = curriculum.make_tool(repo_root=tmp_path)
 
     output = tool.fn(chapter="01", mode="measure")

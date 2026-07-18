@@ -15,34 +15,13 @@ import urllib.request
 
 from scripts.curriculum import artifact_errors, current_chapter
 from scale.loadgen import run as run_load
+from waku.ops.repository import repository_tags
 from waku.tools.registry import Tool
 
 
 ROOT = Path(__file__).resolve().parents[2]
 MAX_OUTPUT_CHARS = 12_000
 Runner = Callable[..., subprocess.CompletedProcess[str]]
-
-
-def _repository_tags(root: Path) -> set[str]:
-    """Read Git's tag refs directly so preview images do not require git."""
-    git_dir = root / ".git"
-    if git_dir.is_file():
-        pointer = git_dir.read_text().strip()
-        if pointer.startswith("gitdir:"):
-            git_dir = (root / pointer.split(":", 1)[1].strip()).resolve()
-    tags_dir = git_dir / "refs/tags"
-    tags = {
-        path.relative_to(tags_dir).as_posix()
-        for path in tags_dir.rglob("*")
-        if path.is_file()
-    } if tags_dir.is_dir() else set()
-    packed = git_dir / "packed-refs"
-    if packed.is_file():
-        for line in packed.read_text().splitlines():
-            if line.startswith(("#", "^")) or " refs/tags/" not in line:
-                continue
-            tags.add(line.split(" refs/tags/", 1)[1])
-    return tags
 
 
 def _free_port() -> int:
@@ -141,7 +120,7 @@ def make_tool(repo_root: Path | None = None, runner: Runner = subprocess.run) ->
             return "Refused: chapter must be a two-digit curriculum number. No command was run."
 
         try:
-            active = current_chapter(_repository_tags(root))
+            active = current_chapter(repository_tags(root))
         except (OSError, subprocess.SubprocessError) as exc:
             return f"Error: could not determine the current curriculum chapter: {exc}"
         if chapter != active:

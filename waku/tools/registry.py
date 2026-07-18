@@ -54,16 +54,19 @@ class ToolRegistry:
         except Exception as exc:  # surface, don't crash — the model can retry
             output = f"Error running {name}: {exc}"
         if self.recorder:
-            status, category = classify_result(output)
-            source, _, named_integration = tool.source.partition(":")
-            self.recorder.record(
-                source=source,
-                integration=named_integration or name,
-                operation=name,
-                status=status,
-                category=category,
-                latency_ms=int((monotonic() - started) * 1000),
-                message=output if status != "ok" else "completed",
-                details={"args": args},
-            )
+            try:
+                status, category = classify_result(output)
+                source, _, named_integration = tool.source.partition(":")
+                self.recorder.record(
+                    source=source,
+                    integration=named_integration or name,
+                    operation=name,
+                    status=status,
+                    category=category,
+                    latency_ms=int((monotonic() - started) * 1000),
+                    message=output if status != "ok" else "completed",
+                    details={"args": args},
+                )
+            except Exception:
+                pass
         return output

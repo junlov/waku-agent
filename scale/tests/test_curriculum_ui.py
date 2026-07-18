@@ -155,6 +155,8 @@ def test_learning_journal_autosaves_to_sqlite_and_is_visible_in_memory():
 
     assert 'fetch("/api/learning-journal?chapter=' in source
     assert 'postLearningJournal' in source
+    assert "saveQueueRef.current" in source
+    assert "revision !== saveRevisionRef.current" in source
     assert '["journal","Learning Journal"' in app
     assert "function memLearningJournal" in app
 
@@ -183,6 +185,8 @@ def test_chapter_one_has_an_executable_learning_lab_surface():
     assert '"/api/lab/session/start"' in workbench
     assert '"/api/lab/action"' in workbench
     assert '"/api/lab/completion/validate"' in workbench
+    assert "request !== snapshotRequestRef.current" in workbench
+    assert "next.session.chapter !== expectedChapter" in workbench
     assert '"/api/lab/terminal/open"' in terminal
     assert "Attach to Waku" in workbench
     manifest = json.loads(

@@ -58,8 +58,12 @@ def resolve_secret_refs(values: dict | None) -> dict[str, str]:
     return resolved
 
 
+def _configured_transport(spec: dict) -> str:
+    return str(spec.get("transport") or ("streamable_http" if spec.get("url") else "stdio"))
+
+
 def _transport(spec: dict) -> str:
-    transport = spec.get("transport") or ("streamable_http" if spec.get("url") else "stdio")
+    transport = _configured_transport(spec)
     if transport not in {"stdio", "streamable_http"}:
         raise ValueError(f"unsupported MCP transport '{transport}'")
     return transport
@@ -84,7 +88,7 @@ class MCPBridge:
         self._specs = {spec.get("name", "?"): spec for spec in servers}
         self._health = {
             spec.get("name", "?"): {"name": spec.get("name", "?"), "status": "connecting",
-                                     "transport": _transport(spec), "tools": 0,
+                                     "transport": _configured_transport(spec), "tools": 0,
                                      "last_error": "", "connected_at": None}
             for spec in servers
         }
@@ -144,7 +148,9 @@ class MCPBridge:
         listed: dict = {}
         for spec in servers:
             name = spec["name"]
+            transport = _configured_transport(spec)
             try:
+                transport = _transport(spec)
                 read, write = await self._open_transport(self._stack, spec)
                 session = await self._stack.enter_async_context(ClientSession(read, write))
                 await session.initialize()
@@ -154,7 +160,7 @@ class MCPBridge:
                 self._health[name] = {
                     "name": name,
                     "status": "connected",
-                    "transport": _transport(spec),
+                    "transport": transport,
                     "tools": len(tools),
                     "last_error": "",
                     "connected_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -164,7 +170,7 @@ class MCPBridge:
                                          status="ok", message=f"Discovered {len(tools)} tool(s)")
             except Exception as exc:  # one bad server shouldn't stop the rest
                 self._health[name] = {"name": name, "status": "error",
-                                      "transport": _transport(spec), "tools": 0,
+                                      "transport": transport, "tools": 0,
                                       "last_error": str(redact(str(exc))), "connected_at": None}
                 if self.recorder:
                     self.recorder.record(source="mcp", integration=name, operation="connect",

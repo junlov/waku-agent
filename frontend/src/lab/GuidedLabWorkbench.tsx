@@ -395,8 +395,11 @@ export function GuidedLabWorkbench({
   const [taskWidth, setTaskWidth] = useState(320);
   const [terminalHeight, setTerminalHeight] = useState(280);
   const mountedRef = useRef(false);
+  const chapterRef = useRef(chapter.number);
+  const snapshotRequestRef = useRef(0);
   const dirtyRef = useRef(dirty);
   const openedFileRef = useRef(openedFile);
+  chapterRef.current = chapter.number;
   dirtyRef.current = dirty;
   openedFileRef.current = openedFile;
 
@@ -417,16 +420,22 @@ export function GuidedLabWorkbench({
   }, []);
 
   const loadSnapshot = useCallback(async (id: string) => {
+    const expectedChapter = chapter.number;
+    const request = ++snapshotRequestRef.current;
     const next = await postLab<LabSnapshot>("/api/lab/session/snapshot", { session_id: id });
-    // Late resolves (terminal finalize, slow networks) must not resurrect
-    // state — or republish the session id — after the workbench unmounts.
-    if (!mountedRef.current) return next;
+    if (
+      !mountedRef.current
+      || request !== snapshotRequestRef.current
+      || expectedChapter !== chapterRef.current
+      || next.session.id !== id
+      || next.session.chapter !== expectedChapter
+    ) return next;
     setSnapshot(next);
     setSnapshotAt(Date.now());
     setTerminalActive(next.workspace.terminal_active);
     onSessionChange(id);
     return next;
-  }, [onSessionChange]);
+  }, [chapter.number, onSessionChange]);
 
   const refreshSnapshot = useCallback(async () => {
     if (sessionId) await loadSnapshot(sessionId);

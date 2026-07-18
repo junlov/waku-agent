@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import sys
+from types import SimpleNamespace
 
 from waku.config import Settings
 from waku.db import connect
@@ -8,7 +11,7 @@ from waku.ops.integrations import IntegrationRecorder, redact
 from waku.tools.registry import Tool, ToolRegistry
 from waku.tools import build_registry
 from waku.tools.integration_builder import make_configure_tool, make_tool
-from waku.tools.mcp_client import resolve_secret_refs
+from waku.tools.mcp_client import MCPBridge, resolve_secret_refs
 
 
 def test_scaffold_local_tool_is_idempotent_and_loads_in_sandbox(monkeypatch, tmp_path):
@@ -87,6 +90,29 @@ def test_secret_refs_fail_honestly_when_env_is_missing(monkeypatch):
         raise AssertionError("missing secret reference should fail")
 
 
+def test_invalid_mcp_transport_is_isolated_per_server(monkeypatch, tmp_path):
+    monkeypatch.setitem(sys.modules, "mcp", SimpleNamespace(ClientSession=object))
+    bridge = MCPBridge(tmp_path / "mcp.json")
+    spec = {"name": "broken", "transport": "websocket"}
+    bridge._health = {
+        "broken": {
+            "name": "broken",
+            "status": "connecting",
+            "transport": "websocket",
+            "tools": 0,
+            "last_error": "",
+            "connected_at": None,
+        },
+    }
+
+    listed = asyncio.run(bridge._connect_all([spec]))
+
+    assert listed == {}
+    assert bridge.health()[0]["status"] == "error"
+    assert "unsupported MCP transport" in bridge.health()[0]["last_error"]
+    bridge._loop.close()
+
+
 def test_integration_events_redact_secrets(tmp_path):
     conn = connect(tmp_path)
     recorder = IntegrationRecorder(tmp_path)
@@ -128,6 +154,22 @@ def test_registry_records_failed_custom_tool_with_redacted_arguments(tmp_path):
     assert row["category"] == "timeout"
     assert "sk-proj-abcdefghijklmnop" not in row["details_json"]
     assert redact("token ghp_abcdefghijklmnopqrst") == "token [REDACTED]"
+
+
+def test_registry_returns_tool_output_when_recording_fails():
+    class FailingRecorder:
+        def record(self, **_kwargs):
+            raise RuntimeError("database is locked")
+
+    registry = ToolRegistry(recorder=FailingRecorder())
+    registry.register(Tool(
+        name="vendor_lookup",
+        description="test",
+        input_schema={},
+        fn=lambda: "lookup complete",
+    ))
+
+    assert registry.execute("vendor_lookup", {}) == "lookup complete"
 
 
 def test_tools_catalog_shows_workbench_before_first_chat(monkeypatch, tmp_path):

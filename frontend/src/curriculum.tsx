@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useState } from "react";
+import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -104,6 +104,8 @@ function LearningJournalPanel({ chapter, track }: { chapter: CurriculumChapter; 
   const [journal, setJournal] = useState<LearningJournal>(() => loadJournal(chapter.number));
   const [hydrated, setHydrated] = useState(false);
   const [saveState, setSaveState] = useState<"ready" | "saving" | "saved" | "offline">("ready");
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const saveRevisionRef = useRef(0);
 
   useEffect(() => {
     window.localStorage.setItem(`${JOURNAL_STORAGE_PREFIX}:${chapter.number}`, JSON.stringify(journal));
@@ -160,14 +162,23 @@ function LearningJournalPanel({ chapter, track }: { chapter: CurriculumChapter; 
 
   useEffect(() => {
     if (!hydrated) return;
+    const revision = ++saveRevisionRef.current;
+    const payload = { version: 1 as const, chapter: chapter.number, track, journal };
     setSaveState("saving");
     const timer = window.setTimeout(() => {
-      postLearningJournal({ version: 1, chapter: chapter.number, track, journal })
+      const save = saveQueueRef.current
+        .catch(() => undefined)
+        .then(() => postLearningJournal(payload));
+      saveQueueRef.current = save.then(() => undefined, () => undefined);
+      save
         .then((saved) => {
+          if (revision !== saveRevisionRef.current) return;
           setJournal((current) => ({ ...current, updated_at: serverTimestamp(saved.updated_at) }));
           setSaveState("saved");
         })
-        .catch(() => setSaveState("offline"));
+        .catch(() => {
+          if (revision === saveRevisionRef.current) setSaveState("offline");
+        });
     }, 450);
     return () => window.clearTimeout(timer);
   }, [
@@ -183,6 +194,7 @@ function LearningJournalPanel({ chapter, track }: { chapter: CurriculumChapter; 
   ]);
 
   const updateField = (name: Exclude<keyof LearningJournal, "updated_at">, value: string) => {
+    saveRevisionRef.current += 1;
     setJournal((current) => ({ ...current, [name]: value, updated_at: new Date().toISOString() }));
   };
   const trackLabel = track === "engineer"

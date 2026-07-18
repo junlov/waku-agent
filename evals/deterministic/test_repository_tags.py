@@ -9,6 +9,8 @@ worktree gitdir, found zero tags, and /api/curriculum crashed with
 from pathlib import Path
 
 from waku.ops.dashboard import _repository_tags
+from waku.ops.repository import repository_tags
+from waku.tools import curriculum
 
 
 def _make_primary(root: Path, name: str) -> None:
@@ -44,3 +46,5 @@ def test_reads_tags_from_linked_worktree_common_dir(tmp_path):
     (worktree / ".git").write_text(f"gitdir: {wt_gitdir}\n")
 
     assert _repository_tags(worktree) == {"chapter-00-start", "chapter-01-start"}
+    assert repository_tags(worktree) == {"chapter-00-start", "chapter-01-start"}
+    assert curriculum.repository_tags(worktree) == {"chapter-00-start", "chapter-01-start"}
