@@ -149,10 +149,20 @@ if ! grep -Eq '^## Loops' "$ROOT_DIR/AGENTS.md"; then
   echo "AGENTS.md must contain a ## Loops section" >&2
   exit 1
 fi
-if ! grep -Eq 'make (lint|eval|harness-test|gate|check)' "$ROOT_DIR/AGENTS.md"; then
-  echo "AGENTS.md Loops/checker must document make lint/eval/harness-test/check/gate" >&2
-  exit 1
-fi
+checker_section="$(
+  awk '
+    /^## Loops[[:space:]]*$/ { in_loops = 1; next }
+    in_loops && /^## / { exit }
+    in_loops && /^### Checker \(loop stop condition\)[[:space:]]*$/ { in_checker = 1 }
+    in_checker { print }
+  ' "$ROOT_DIR/AGENTS.md"
+)"
+for checker in "make lint" "make eval" "make harness-test" "make check" "make gate"; do
+  if ! grep -Eq "(^|[^[:alnum:]_-])${checker}([^[:alnum:]_-]|$)" <<<"$checker_section"; then
+    echo "AGENTS.md Loops/checker must document $checker" >&2
+    exit 1
+  fi
+done
 
 # ---- offline verification (no API key) ----
 echo "=== Offline checks (checker) ==="
