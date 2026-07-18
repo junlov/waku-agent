@@ -43,7 +43,7 @@ Last Updated: 2026-07-18
   `session-handoff.md`, `init.sh`
 - Known risk: UI worker and harness kit may race on `AGENTS.md` when merging to
   `scale`; prefer merge with content from both (curriculum + harness sections).
-- Next best step: commit on `fm/waku-harness-g1`; do not touch UI-owned paths.
+- Next best step: open the harness-kit PR against `scale`; do not touch UI-owned paths.
 
 ### 2026-07-16 - Curriculum harness repair (prior, on scale)
 

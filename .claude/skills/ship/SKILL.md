@@ -19,7 +19,8 @@ description: Commit and push the current work properly — lint, run the release
      eval failure), and what verification it survived.
    - Add the current agent's standard `Co-Authored-By` trailer only when the
      user wants agent co-authorship recorded.
-5. Confirm the working branch is `scale`, then `git push origin scale`. Never
-   push `main` from the curriculum workflow.
+5. Follow the branch policy in `AGENTS.md`: push the current `scale`-based
+   feature branch and target `scale` with its PR. Never push `main` from the
+   curriculum workflow.
 6. Confirm CI: `gh run list --limit 1` — if CI fails, fix forward immediately;
-   don't leave main red.
+   don't leave the `scale` PR checks red.

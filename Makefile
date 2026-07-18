@@ -34,7 +34,7 @@ eval:           ## deterministic evals (0/1, no judge involved)
 eval-judge:     ## LLM-as-judge evals (scored %, needs an API key)
 	$(PY) -m pytest -q evals/judge
 
-gate:           ## the release gate: deterministic must pass, judge must clear threshold
+gate:           ## release gate: deterministic must pass; keyed judge must clear threshold
 	$(PY) -m waku.ops.release_gate
 
 lint:

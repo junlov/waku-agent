@@ -52,7 +52,7 @@
       ],
       "evidence": [
         "2026-07-18: harness kit added on branch fm/waku-harness-g1 based on origin/scale.",
-        "Commands actually run green on this worktree: make lint; make eval (58 passed, 5 skipped); make harness-test (13 passed); make check-00 (1 passed); ./scripts/session-init.sh.",
+        "Commands actually run green on this worktree: ./init.sh; ./scripts/session-init.sh; make lint; make eval (58 passed, 5 skipped); make harness-test (13 passed); make check-00 (1 passed).",
         "Methodology shape ported from autonomy harness + learn-harness-engineering + loop-engineering (goal/stop/checker/budget/state/dogfood/handoff) sized to waku-agent."
       ],
       "notes": "Completed by crewmate waku-harness-g1. CLAUDE.md is a symlink or thin pointer to AGENTS.md."
