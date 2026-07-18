@@ -104,3 +104,20 @@ Use the `chapter-review` skill. Portable copies live under both
 `.claude/skills/` and `.agents/skills/`, and the harness test requires them to
 stay identical. It grades a diff against the brief without leaking the
 reference solution.
+
+## Checkouts and worktrees
+
+The `chapter-*` git tags are load-bearing: lab manifests validate their
+`checkpoint` refs against repository tags, so a checkout fetched without
+tags crashes `/api/curriculum` with `LabManifestError`. When basing a
+worktree or clone on another checkout, also fetch `refs/tags/*`.
+Linked `git worktree` checkouts are supported (tag discovery follows
+`commondir`; regression: `evals/deterministic/test_repository_tags.py`).
+
+## Maintaining this file
+
+Keep this file current as the project evolves. When you learn something
+durable about the project that future sessions need (a convention, a
+gotcha, a workflow), record it here concisely. Prefer pointers to
+authoritative files over copying detail. Remove guidance that has become
+wrong or obsolete.
