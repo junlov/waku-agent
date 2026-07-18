@@ -82,13 +82,29 @@ if ! git show-ref --verify --quiet refs/remotes/origin/scale; then
   echo "origin/scale is required to validate scale branch lineage." >&2
   exit 1
 fi
+if ! git show-ref --verify --quiet refs/remotes/origin/main; then
+  echo "origin/main not found; attempting to fetch it"
+  git fetch origin main:refs/remotes/origin/main || true
+fi
+if ! git show-ref --verify --quiet refs/remotes/origin/main; then
+  echo "origin/main is required to distinguish scale-only lineage." >&2
+  exit 1
+fi
 if git merge-base --is-ancestor origin/scale HEAD; then
   echo "OK: HEAD descends from origin/scale."
-elif git merge-base origin/scale HEAD >/dev/null 2>&1; then
-  echo "NOTE: HEAD shares scale lineage but is behind origin/scale; consider rebasing onto origin/scale."
+elif git merge-base --is-ancestor HEAD origin/scale; then
+  echo "NOTE: HEAD is behind origin/scale; consider updating to origin/scale."
 else
-  echo "Current HEAD is not based on origin/scale (no merge-base found)." >&2
-  exit 1
+  scale_merge_base="$(git merge-base origin/scale HEAD 2>/dev/null || true)"
+  if [[ -z "$scale_merge_base" ]]; then
+    echo "Current HEAD is not based on origin/scale (no merge-base found)." >&2
+    exit 1
+  fi
+  if git merge-base --is-ancestor "$scale_merge_base" origin/main; then
+    echo "Current HEAD is based on main, not the scale-only side of the fork." >&2
+    exit 1
+  fi
+  echo "NOTE: HEAD has stale scale-only lineage; consider rebasing onto origin/scale."
 fi
 git status --short --branch || true
 
@@ -106,11 +122,18 @@ if not isinstance(features, list) or not features:
     raise SystemExit("feature_list.json must contain a non-empty features array")
 
 required = {"id", "name", "description", "status", "dependencies", "verification", "evidence"}
+allowed_statuses = {"not_started", "in_progress", "blocked", "passing"}
 for feature in features:
     missing = sorted(required - feature.keys())
     if missing:
         raise SystemExit(
             f"feature {feature.get('id', '<unknown>')} missing fields: {', '.join(missing)}"
+        )
+    if feature["status"] not in allowed_statuses:
+        allowed = ", ".join(sorted(allowed_statuses))
+        raise SystemExit(
+            f"feature {feature['id']} has unknown status {feature['status']!r}; "
+            f"expected one of: {allowed}"
         )
 
 local_active = [
