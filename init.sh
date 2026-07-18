@@ -52,16 +52,8 @@ if [[ ! -x .venv/bin/python ]]; then
 fi
 PY=.venv/bin/python
 
-needs_install=0
-if ! "$PY" -c 'import pytest' >/dev/null 2>&1 \
-  || ! "$PY" -m ruff --version >/dev/null 2>&1 \
-  || ! "$PY" -c 'import waku' >/dev/null 2>&1; then
-  needs_install=1
-fi
-if [[ "$needs_install" -eq 1 ]]; then
-  echo "installing package + eval/dev extras"
-  uv pip install --python "$PY" -q -e '.[eval,dev]'
-fi
+echo "ensuring editable package + eval/dev extras"
+uv pip install --python "$PY" -q -e '.[eval,dev]'
 
 if [[ ! -f .env ]]; then
   cp .env.example .env
@@ -173,7 +165,7 @@ echo "curriculum harness: done"
 
 if [[ -x "$ROOT_DIR/scripts/curriculum.py" ]] || [[ -f "$ROOT_DIR/scripts/curriculum.py" ]]; then
   echo "=== Curriculum position ==="
-  "$PY" scripts/curriculum.py current || true
+  "$PY" scripts/curriculum.py current
 fi
 
 echo "=== Initialization complete ==="
