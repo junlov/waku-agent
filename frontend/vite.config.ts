@@ -19,6 +19,11 @@ export default defineConfig({
       },
     },
   ],
+  resolve: {
+    alias: {
+      "@": resolve(fileURLToPath(new URL("./src", import.meta.url))),
+    },
+  },
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
   },
@@ -27,14 +32,16 @@ export default defineConfig({
     outDir: resolve(fileURLToPath(new URL(".", import.meta.url)), "../waku/ops/static/react"),
     emptyOutDir: true,
     lib: {
-      entry: resolve(fileURLToPath(new URL(".", import.meta.url)), "src/curriculum.tsx"),
+      entry: resolve(fileURLToPath(new URL(".", import.meta.url)), "src/main.tsx"),
       formats: ["es"],
       fileName: () => "curriculum.js",
       cssFileName: "curriculum",
     },
     rollupOptions: {
       treeshake: {
-        moduleSideEffects: false,
+        // main.tsx imports ./curriculum.js (and CSS files) purely for side
+        // effects — whitelist them or they're treeshaken out of the bundle.
+        moduleSideEffects: (id) => id.endsWith(".css") || /src[\\/]curriculum\.tsx$/.test(id),
       },
     },
   },

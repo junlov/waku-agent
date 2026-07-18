@@ -720,7 +720,7 @@ async function openConversation(id){
   localStorage.setItem("dockClosed", "0");
   liveView = id;
   await switchSession(id);   // switch the agent so a reply continues this thread
-  render();                  // reflect the active-session highlight in the inbox
+  paint(activeView, activeSub);   // reflect the active-session highlight in the inbox
 }
 // Re-pull the opened conversation each refresh so incoming messages from another
 // gateway (your phone) show up live — unless a turn is mid-stream in the dock.
@@ -1372,74 +1372,66 @@ const VIEW_SUBTITLES = {
   ops:"latency, usage, retrieval, and release evidence",
   settings:"providers, models, credentials, and runtime",
 };
-function render(){
-  if (!D) return;
-  const parts = (location.hash||"#learn").slice(1).split("/");
-  const v = parts.shift();
-  const sub = parts.join("/") || null;
-  const view = VIEWS[v] ? v : "learn";
+// ---- Phase 0: React owns the shell (sidebar, pagehead, hash router, and the
+// 5s data poll). This file is now a render library: React pushes (view, sub,
+// D, curriculum) through window.WakuLegacy.update() and we paint the legacy
+// panels into the mount React registered. TITLES/VIEW_SUBTITLES stay here (the
+// UI contract tests pin them) and the shell reads them off the adapter.
+let legacyMount = null;
+function paint(view, sub){
+  if (!legacyMount || !D || !VIEWS[view]) return;
   const subChanged = sub !== activeSub || view !== activeView;
-  document.getElementById("view").classList.toggle("legacy-view", view !== "learn");
-  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on", a.dataset.v===view));
-  document.getElementById("title").textContent = TITLES[view] || view[0].toUpperCase()+view.slice(1);
-  const curriculumHost = document.getElementById("curriculum-react-root");
-  if (view !== "learn" && curriculumHost && window.WakuCurriculum){
-    window.WakuCurriculum.unmount(curriculumHost);
-  }
-  if (view === "learn" && window.WakuCurriculum){
-    const host = document.getElementById("view");
-    let mount = document.getElementById("curriculum-react-root");
-    if (!mount){
-      host.innerHTML = '<div id="curriculum-react-root"></div>';
-      mount = document.getElementById("curriculum-react-root");
-    }
-    window.WakuCurriculum.render(mount, CURRICULUM, sub);
-  } else if (view === "overview"){
+  legacyMount.classList.toggle("legacy-view", view !== "learn");
+  if (view === "overview"){
     // don't rebuild mid-animation or the glowing SVG gets wiped
-    if (activeView !== "overview" || !animating){ document.getElementById("view").innerHTML = VIEWS.overview(D); }
+    if (activeView !== "overview" || !animating){ legacyMount.innerHTML = VIEWS.overview(D); }
   } else if ((view === "memory" || view === "settings" || view === "database") && editing && !subChanged){
     // don't wipe an in-progress edit on the 5s refresh — but DO switch sub-tabs
   } else {
     editing = false;
-    document.getElementById("view").innerHTML = VIEWS[view](D, sub);
+    legacyMount.innerHTML = VIEWS[view](D, sub);
   }
   if (subChanged) document.querySelector("main").scrollTop = 0;
   activeView = view; activeSub = sub;
   if (!CHAT.length) syncChatLogs();
-  document.getElementById("model").textContent = `${D.provider} · ${D.model}`;
+}
+function syncDockModel(){
   const dockModel = document.getElementById("dock-model");
-  if (dockModel) dockModel.textContent = `${D.provider} · ${D.model}`;
-  document.getElementById("n-gw").textContent = (D.chat_log||[]).length;
-  document.getElementById("n-loop").textContent = D.stats.turns;
-  document.getElementById("n-mem").textContent = D.facts.length + D.episodes.length;
-  document.getElementById("n-tools").textContent = D.calendar.length + D.outbox.length;
-  document.getElementById("n-db").textContent = (D.db && D.db.all_tables.length) || "";
-  document.getElementById("n-ops").textContent = D.stats.tool_errors || (D.eval_report ? "" : "!");
-  const current = CURRICULUM && CURRICULUM.current;
-  document.getElementById("n-learn").textContent = current ? current : "✓";
+  if (dockModel && D) dockModel.textContent = `${D.provider} · ${D.model}`;
 }
-let lastFetch = Date.now();
-function tickLive(){
-  if (!D) return;
-  const ago = Math.round((Date.now()-lastFetch)/1000);
-  const route = (location.hash||"#learn").slice(1).split("/")[0];
-  const learning = route === "learn";
-  document.getElementById("sub").innerHTML = learning
-    ? `self-directed · repository-backed progress · current chapter ${esc(CURRICULUM&&CURRICULUM.current||"—")}`
-    : `<span class="live"><span class="dot"></span>live</span> · updated ${ago}s ago · ${esc(VIEW_SUBTITLES[route]||"agent evidence workspace")}`;
-}
+window.WakuLegacy = {
+  mount(el){ legacyMount = el; },
+  update(view, sub, data, curriculum){
+    if (data) D = data;
+    if (curriculum) CURRICULUM = curriculum;
+    syncDockModel();
+    if (view !== "learn") paint(view, sub);
+    else { activeView = view; activeSub = sub; }
+    syncLiveView();   // live-update an opened conversation (e.g. new phone messages)
+  },
+  TITLES,
+  VIEW_SUBTITLES,
+};
+// Post-mutation re-pull (save fact, switch model, test MCP, …). The steady
+// 5s poll is React's now, so when the shell is up we ask it to refetch — its
+// state (nav counts, model line) then updates in the same beat, and it pushes
+// the fresh D back through update(). The standalone fallback keeps the old
+// behavior when the shell isn't there.
 async function refresh(){
+  if (window.WakuRefresh){ await window.WakuRefresh(); return; }
   try {
     const requests = [fetch("/api/data").then(r=>r.json())];
     if (!CURRICULUM) requests.push(fetch("/api/curriculum").then(r=>r.json()));
     const results = await Promise.all(requests);
-    D = results[0]; if (results[1]) CURRICULUM = results[1]; lastFetch = Date.now();
-    render(); tickLive();
-    syncLiveView();   // live-update an opened conversation (e.g. new phone messages)
+    D = results[0]; if (results[1]) CURRICULUM = results[1];
+    syncDockModel();
+    if (activeView && activeView !== "learn") paint(activeView, activeSub);
+    syncLiveView();
   } catch(e){ /* server restarting — keep showing last data */ }
 }
-// --- resizable columns: drag the thin handle between nav|main and main|dock.
-// Width lives in a CSS var + localStorage, so it survives refreshes.
+// --- resizable dock column: drag the thin handle between main and dock (the
+// nav resizer is React's now). Width lives in a CSS var + localStorage, so it
+// survives refreshes.
 function wireResizer(id, cssVar, key, fromRight, min, max){
   const el = document.getElementById(id);
   if (!el) return;
@@ -1459,24 +1451,29 @@ function wireResizer(id, cssVar, key, fromRight, min, max){
   };
 }
 function wireChrome(){
-  // restore saved widths
+  // restore saved widths (before first paint; React's nav resizer owns later
+  // nav-width changes)
   const nw = localStorage.getItem("navW"); if (nw) document.documentElement.style.setProperty("--nav-w", nw+"px");
   const dw = localStorage.getItem("dockW"); if (dw) document.documentElement.style.setProperty("--dock-w", dw+"px");
-  wireResizer("nav-resizer", "--nav-w", "navW", false, 150, 380);
   wireResizer("dock-resizer", "--dock-w", "dockW", true, 260, 680);
-  // hide / show the sidebar
+  // hide / show the sidebar. React renders the nav markup now, so the
+  // handlers are delegated — they keep working when React re-renders the nav.
+  // (These matchMedia/setNav lines are pinned by the UI contract tests.)
   const setNav = (v, persist=true) => {
     document.body.classList.toggle("nav-hidden", v);
     if (persist) localStorage.setItem("navHidden", v?"1":"0");
   };
-  const nt = document.getElementById("nav-toggle"), nr = document.getElementById("nav-reopen");
-  if (nt) nt.onclick = () => setNav(true);
-  if (nr) nr.onclick = () => setNav(false);
   const narrowNav = window.matchMedia("(max-width:650px)");
   setNav(narrowNav.matches || localStorage.getItem("navHidden") === "1", false);
-  document.querySelectorAll("#nav a").forEach(link => link.addEventListener("click", () => {
-    if (narrowNav.matches) setNav(true, false);
-  }));
+  document.addEventListener("click", e => {
+    const t = e.target;
+    if (!(t instanceof Element)) return;
+    if (t.closest("#nav-toggle")){ setNav(true); return; }
+    if (t.closest("#nav-reopen")){ setNav(false); return; }
+    if (t.closest("#nav a")){
+      if (narrowNav.matches) setNav(true, false);
+    }
+  });
   narrowNav.addEventListener("change", event => {
     if (event.matches) setNav(true, false);
   });
@@ -1547,9 +1544,9 @@ function encodeWAV(chunks, rate){
 }
 function wireMic(){ const b = document.getElementById("mic"); if (b) b.onclick = toggleMic; }
 
-window.addEventListener("hashchange", render);
-window.addEventListener("waku-curriculum-ready", render);
 window.__hold = (v)=>{ animating = v; };   // test hook: freeze the diagram
 wireDock(); wireChrome(); wireMic();
-refresh(); setInterval(refresh, 5000); setInterval(tickLive, 1000);
+// React drives the 5s data poll, the 1s pagehead tick, and hash routing.
+// pollEvents stays here — it feeds the legacy overview animation and the
+// dock's arch-status until Phase 1 migrates that panel.
 pollEvents(); setInterval(pollEvents, 450);   // live harness animation

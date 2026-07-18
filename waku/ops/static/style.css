@@ -31,6 +31,9 @@
   body{background:var(--bg);color:var(--ink);
        font:14px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
        display:flex;height:100vh;overflow:hidden}
+  /* the React shell mounts into #root — the wrapper must not disturb the
+     three-column flex layout (its children lay out as if direct) */
+  #root{display:contents}
   #nav{width:var(--nav-w,208px);flex-shrink:0;border-right:1px solid var(--line);padding:20px 12px;
       height:100vh;overflow-y:auto}
   /* drag handles between the three columns + elegant hide/show */

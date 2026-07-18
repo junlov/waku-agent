@@ -1,4 +1,4 @@
-import { r as I, j as S, M as Nm, a as Ym } from "./curriculum-DdU4f4xv.js";
+import { r as I, j as S, M as Nm, a as Ym } from "./main-CpUvO8ri.js";
 class dc extends Error {
 }
 async function Te(t, e, i) {

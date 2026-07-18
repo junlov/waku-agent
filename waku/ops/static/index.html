@@ -3,6 +3,11 @@
 <title>Waku わく</title>
 <link rel="stylesheet" href="/static/style.css">
 <link rel="stylesheet" href="/static/react/curriculum.css"></head><body>
+<!-- React owns the shell (sidebar, pagehead, router) and mounts over #root,
+     replacing this markup. The static copy below is the pre-React placeholder:
+     it matches what the shell renders, so first paint looks the same and the
+     page is still navigable while the bundle loads. -->
+<div id="root">
 <nav id="nav">
   <div class="brand">Waku わく<small id="model" style="cursor:pointer" title="click to change the model" onclick="location.hash='#settings'"></small>
     <button id="nav-toggle" title="Hide sidebar" aria-label="Hide sidebar">&#10094;</button></div>
@@ -28,6 +33,8 @@
   </header>
   <div id="view"></div>
 </main>
+<button id="nav-reopen" title="Show sidebar" aria-label="Show sidebar">&#9776;</button>
+</div>
 <div class="resizer" id="dock-resizer" title="Drag to resize chat"></div>
 <aside id="dock">
   <div class="dockhead">
@@ -53,7 +60,6 @@
     <div class="composer-hint"><span>Enter to send · Shift+Enter for a new line</span><span>Reviewer, not author</span></div>
   </div>
 </aside>
-<button id="nav-reopen" title="Show sidebar" aria-label="Show sidebar">&#9776;</button>
 <button id="dock-reopen" title="Open chat" aria-label="Open chat">&lsaquo; Chat</button>
 <script type="module" src="/static/react/curriculum.js"></script>
 <script src="/static/app.js"></script></body></html>

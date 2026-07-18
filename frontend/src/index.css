@@ -1,0 +1,46 @@
+@layer theme, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "@landing-factory/ui/styles/theme.css";
+@import "@landing-factory/ui/styles/token-bridge.css";
+
+/* shadcn/ui on Tailwind v4.
+ *
+ * The shadcn token contract is mapped onto the dashboard's EXISTING CSS
+ * variables — waku/ops/static/style.css owns :root and its
+ * prefers-color-scheme dark block; we only reference its variables, never
+ * redefine them, so light/dark behavior stays byte-identical. Fallbacks
+ * mirror the ones the app already rendered with, so generated utilities are
+ * unchanged for the existing island components. */
+@theme inline {
+  --color-background: var(--background, var(--color-white));
+  --color-foreground: var(--foreground, var(--color-slate-900));
+  --color-card: var(--card, var(--background, var(--color-white)));
+  --color-card-foreground: var(--card-foreground, var(--foreground, var(--color-slate-900)));
+  --color-popover: var(--popover, var(--background, var(--color-white)));
+  --color-popover-foreground: var(--popover-foreground, var(--foreground, var(--color-slate-900)));
+  --color-primary: var(--primary, var(--color-slate-800));
+  --color-primary-foreground: var(--primary-foreground, var(--color-white));
+  --color-secondary: var(--secondary, var(--color-slate-100));
+  --color-secondary-foreground: var(--secondary-foreground, var(--color-slate-900));
+  --color-muted: var(--muted, var(--color-slate-100));
+  --color-muted-foreground: var(--muted-foreground, var(--color-slate-500));
+  --color-accent: var(--accent, var(--color-slate-100));
+  --color-accent-foreground: var(--accent-foreground, var(--color-slate-900));
+  --color-destructive: var(--destructive, var(--color-red-600));
+  --color-destructive-foreground: var(--destructive-foreground, var(--color-white));
+  --color-success: var(--success, var(--color-green-600));
+  --color-success-foreground: var(--success-foreground, var(--color-white));
+  --color-warning: var(--warning, var(--color-amber-500));
+  --color-warning-foreground: var(--warning-foreground, var(--color-amber-950));
+  --color-border: var(--border, var(--color-slate-200));
+  --color-input: var(--input, var(--border, var(--color-slate-200)));
+  --color-ring: var(--ring, var(--primary, var(--color-slate-800)));
+
+  /* Radii read the dashboard's own --radius (style.css), matching what the
+     existing components already resolve to. */
+  --radius-sm: calc(var(--radius, 0.5rem) - 2px);
+  --radius-md: var(--radius, 0.5rem);
+  --radius-lg: calc(var(--radius, 0.5rem) + 2px);
+  --radius-xl: calc(var(--radius, 0.5rem) + 6px);
+}

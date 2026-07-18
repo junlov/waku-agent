@@ -1,1 +1,1 @@
-import "./curriculum-DdU4f4xv.js";
+import "./main-CpUvO8ri.js";

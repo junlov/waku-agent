@@ -1,9 +1,6 @@
-@layer theme, components, utilities;
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
-@import "@landing-factory/ui/styles/theme.css";
-@import "@landing-factory/ui/styles/token-bridge.css";
-
+/* Tailwind + the kit's styles are imported by src/index.css (the single
+   Tailwind entry for the bundle). This file keeps only the island's own
+   component styles. */
 #curriculum-react-root {
   --wf-accent: var(--curriculum-accent, #d69a38);
   --wf-accent-strong: var(--curriculum-accent-strong, #a46e1f);
