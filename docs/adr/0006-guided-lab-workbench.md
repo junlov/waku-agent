@@ -57,8 +57,14 @@ Lab checkpoints use private `refs/waku/checkpoints/*` and temporary Git indexes
 so capturing a checkpoint does not disturb the learner's index. Restore is a
 three-part operation: show the proposed diff, create a pre-restore checkpoint,
 then require explicit confirmation. Destructive `git reset --hard` is not an
-implementation mechanism. Passed chapters replay in temporary Git worktrees,
-isolated from the canonical workspace.
+implementation mechanism. Passed chapters replay in persistent standalone Git
+checkouts created with `git clone --no-local --no-hardlinks` at the manifest
+checkpoint. The replay clone removes its source remote and uses an empty Git
+template, so its object store, refs, repository config, and hooks are
+independent from the canonical workspace. Linked Git worktrees were considered
+and rejected: their shared Git common directory lets a replay mutate canonical
+refs and repository configuration even when its files live outside
+`/workspace`.
 
 The supervisor's last-known-good filesystem checkpoint remains crash recovery
 for the mutable harness. It is not reused as a chapter fixture or learner
@@ -133,6 +139,8 @@ checkpoints remain persistent.
 - Content can evolve independently from React because the UI renders validated
   manifests and authoritative Markdown.
 - Git and SQLite have explicit, non-competing responsibilities.
+- Replay refs, config, hooks, objects, commits, and private checkpoints are
+  physically independent from canonical Git metadata.
 - File, PTY, Git, and container orchestration add meaningful security and
   lifecycle test surfaces.
 - Future chapters remain honest previews until their deterministic incident and
@@ -144,7 +152,8 @@ checkpoints remain persistent.
 
 Each implementation phase lands as a focused commit. A lab restore first
 creates a named recovery ref; a failed curriculum upgrade remains pending; a
-passed-chapter replay is disposable. The existing supervisor may recover a
-broken harness from last-known-good state, while named volumes retain the Git
-workspace and SQLite experience data. Volumes are never deleted automatically.
-
+passed-chapter standalone replay is disposable after explicit abandonment and
+remains resumable in the persistent runtime volume before then. The existing
+supervisor may recover a broken harness from last-known-good state, while named
+volumes retain the Git workspace and SQLite experience data. Volumes are never
+deleted automatically.

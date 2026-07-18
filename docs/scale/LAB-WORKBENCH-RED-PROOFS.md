@@ -69,15 +69,16 @@ action.
 ## 4. Recovery is global last-known-good copying, not a chapter checkpoint
 
 ```bash
-rg -n "last-good|refs/waku/checkpoints|git worktree|GIT_INDEX_FILE|restore.*(preview|confirm)" scripts waku
+rg -n "last-good|refs/waku/checkpoints|--no-local|--no-hardlinks|GIT_INDEX_FILE|restore.*(preview|confirm)" scripts waku
 ```
 
 Red result: only `scripts/sandbox_supervisor.py` names `last-good`; there are no
 private checkpoint refs, temporary indexes, pre-restore diff/confirmation, or
-replay worktrees. The supervisor checkpoint protects harness availability and
-cannot safely serve as a chapter fixture. The target is a separate Git
-checkpoint manager; private refs and temporary-index handling must not move into
-the supervisor.
+standalone replay checkouts. Linked worktrees are rejected because they share
+canonical refs and repository configuration. The supervisor checkpoint
+protects harness availability and cannot safely serve as a chapter fixture. The
+target is a separate Git checkpoint manager; private refs and temporary-index
+handling must not move into the supervisor.
 
 ## 5. A newly seeded container workspace has no Git metadata
 
@@ -99,7 +100,7 @@ docker run --rm --entrypoint sh waku-lab-red-proof -lc \
 Red result: `.git` is correctly excluded, but no sanitized bundle is copied and
 the image reports `git-metadata-missing`. The supervisor copies `/seed` into
 `/workspace`, so a fresh named workspace cannot create commits, learner tags,
-private checkpoint refs, or replay worktrees. The target design keeps host
+private checkpoint refs, or standalone replay checkouts. The target design keeps host
 `.git` excluded, seeds from a sanitized Git bundle, bootstraps the persistent
 workspace with clone/fetch, and verifies it with
 `git rev-parse --is-inside-work-tree`.

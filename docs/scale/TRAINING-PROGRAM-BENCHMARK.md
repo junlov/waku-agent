@@ -29,6 +29,7 @@ Every runnable chapter is a production incident with the same learning loop:
 
 Normal labs target 60–90 minutes. Future chapters stay visible as non-executable
 previews until a valid cumulative start checkpoint and red instrument exist.
-Passed chapters may be replayed only in isolated worktrees, so practice cannot
-regress the learner's canonical workspace.
-
+Passed chapters may be replayed only in persistent standalone no-local clones
+at their manifest checkpoints, so practice cannot regress the learner's
+canonical workspace. Linked worktrees are rejected because shared refs and
+repository configuration violate the intended Git isolation boundary.
