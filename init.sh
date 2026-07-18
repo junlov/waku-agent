@@ -74,6 +74,12 @@ echo "Branch: ${branch:-detached}"
 if [[ -n "$branch" && "$branch" != "scale" && "$branch" != scale/* && "$branch" != fm/* ]]; then
   echo "NOTE: ship base for this project is 'scale'. Feature branches should be based on origin/scale."
 fi
+if git show-ref --verify --quiet refs/remotes/origin/scale; then
+  if ! git merge-base --is-ancestor origin/scale HEAD; then
+    echo "Current HEAD must descend from origin/scale." >&2
+    exit 1
+  fi
+fi
 git status --short --branch || true
 
 # ---- harness feature_list schema ----
@@ -189,4 +195,20 @@ echo "       make gate           # release gate before push"
 echo "       make check-NN       # grade one curriculum chapter"
 echo "  4. Dashboard (optional): make dashboard  -> http://localhost:7777"
 echo "  5. Live model chat (optional key in .env): make run"
-echo "Do not edit frontend/ or waku/ops/static/ while waku-ui-frontend-shell is external in_progress."
+if "$PY" - "$ROOT_DIR/feature_list.json" <<'PY'
+import json
+import pathlib
+import sys
+
+features = json.loads(pathlib.Path(sys.argv[1]).read_text())["features"]
+is_externally_owned = any(
+    feature.get("id") == "waku-ui-frontend-shell"
+    and feature.get("status") == "in_progress"
+    and feature.get("owner") == "external"
+    for feature in features
+)
+raise SystemExit(0 if is_externally_owned else 1)
+PY
+then
+  echo "Do not edit frontend/ or waku/ops/static/ while waku-ui-frontend-shell is external in_progress."
+fi
