@@ -20,8 +20,8 @@ Last Updated: 2026-07-18
 - `make eval`: 58 passed, 5 skipped (live cases need provider API key).
 - `make harness-test`: 13 passed.
 - `make check-00`: 1 passed (15 turns ok, 0 errors on sim).
-- `./init.sh`: must be re-run after any harness edit; expected green with
-  feature schema checks + offline suite.
+- `./init.sh`: full initialization green, including feature schema checks,
+  Ruff, deterministic evals, and curriculum harness checks.
 - Git: branch `fm/waku-harness-g1` tracking setup from `origin/scale`
   (`1c6cecb` Repair scale curriculum harness after profile migration).
 

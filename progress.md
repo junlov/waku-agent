@@ -35,7 +35,7 @@ Last Updated: 2026-07-18
   - `make eval` — 58 passed, 5 skipped (live tool-trigger needs API key)
   - `make harness-test` — 13 passed
   - `make check-00` — 1 passed (15 turns, 0 errors)
-  - `./init.sh` — after write, re-run to confirm idempotent green
+  - `./init.sh` — full idempotent initialization green, including Ruff
 - Evidence captured: bare `origin/scale` has no `frontend/`; UI worktree
   carries guided-lab shell + ADRs 0005/0006. Methodology shape from autonomy
   harness + learn-harness-engineering + loop-engineering, sized down.
