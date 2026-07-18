@@ -76,24 +76,27 @@ class IntegrationRecorder:
         retryable: bool = False,
         details: dict | None = None,
     ) -> None:
-        safe_message = str(redact(message))[:4000]
-        safe_details = json.dumps(redact(details or {}), ensure_ascii=False, default=str)[:12000]
-        with sqlite3.connect(self.path, timeout=3) as conn:
-            conn.execute(
-                """INSERT INTO integration_events
-                   (created_at, source, integration, operation, status, category,
-                    latency_ms, retryable, message, details_json)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
-                    source,
-                    integration,
-                    operation,
-                    status,
-                    category,
-                    latency_ms,
-                    int(retryable),
-                    safe_message,
-                    safe_details,
-                ),
-            )
+        try:
+            safe_message = str(redact(message))[:4000]
+            safe_details = json.dumps(redact(details or {}), ensure_ascii=False, default=str)[:12000]
+            with sqlite3.connect(self.path, timeout=3) as conn:
+                conn.execute(
+                    """INSERT INTO integration_events
+                       (created_at, source, integration, operation, status, category,
+                        latency_ms, retryable, message, details_json)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+                        source,
+                        integration,
+                        operation,
+                        status,
+                        category,
+                        latency_ms,
+                        int(retryable),
+                        safe_message,
+                        safe_details,
+                    ),
+                )
+        except Exception:
+            pass

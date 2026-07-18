@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sqlite3
 import sys
 from types import SimpleNamespace
 
@@ -113,6 +114,26 @@ def test_invalid_mcp_transport_is_isolated_per_server(monkeypatch, tmp_path):
     bridge._loop.close()
 
 
+def test_missing_mcp_name_is_isolated_per_server(monkeypatch, tmp_path):
+    monkeypatch.setitem(sys.modules, "mcp", SimpleNamespace(ClientSession=object))
+    bridge = MCPBridge(tmp_path / "mcp.json")
+    bridge._health = {
+        "?": {"status": "connecting"},
+        "broken": {"status": "connecting"},
+    }
+
+    listed = asyncio.run(bridge._connect_all([
+        {},
+        {"name": "broken", "transport": "websocket"},
+    ]))
+
+    assert listed == {}
+    assert bridge._health["?"]["status"] == "error"
+    assert "non-empty name" in bridge._health["?"]["last_error"]
+    assert bridge._health["broken"]["status"] == "error"
+    bridge._loop.close()
+
+
 def test_integration_events_redact_secrets(tmp_path):
     conn = connect(tmp_path)
     recorder = IntegrationRecorder(tmp_path)
@@ -131,6 +152,22 @@ def test_integration_events_redact_secrets(tmp_path):
     assert "sk-live-secret" not in row["details_json"]
     assert "visible" in row["details_json"]
     assert row["status"] == "error"
+
+
+def test_integration_recording_is_best_effort(monkeypatch, tmp_path):
+    recorder = IntegrationRecorder(tmp_path)
+
+    def fail_connect(*_args, **_kwargs):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(sqlite3, "connect", fail_connect)
+
+    assert recorder.record(
+        source="mcp",
+        integration="github",
+        operation="connect",
+        status="error",
+    ) is None
 
 
 def test_registry_records_failed_custom_tool_with_redacted_arguments(tmp_path):

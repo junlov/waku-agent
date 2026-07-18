@@ -147,9 +147,12 @@ class MCPBridge:
         self._stack = AsyncExitStack()
         listed: dict = {}
         for spec in servers:
-            name = spec["name"]
+            name = str(spec.get("name") or "?")
             transport = _configured_transport(spec)
             try:
+                if not isinstance(spec.get("name"), str) or not spec["name"].strip():
+                    raise ValueError("MCP server requires a non-empty name")
+                name = spec["name"]
                 transport = _transport(spec)
                 read, write = await self._open_transport(self._stack, spec)
                 session = await self._stack.enter_async_context(ClientSession(read, write))
