@@ -89,7 +89,9 @@ def test_checkpoint_restore_links_git_refs_and_sqlite_recovery(tmp_path: Path) -
 
 def test_restore_rejects_checkpoint_not_recorded_for_session(tmp_path: Path) -> None:
     root, sessions, labs = orchestrator(tmp_path)
-    sessions.start("01", session_id="other-session", current_step="01-observe")
+    # Captured straight on the checkpoint manager: git-valid, but never
+    # recorded in the session store (a second canonical session per chapter
+    # is rejected by LabSessionStore.start anyway).
     external = GitCheckpointManager(root).capture(
         chapter="01", session_id="other-session", label="external"
     )

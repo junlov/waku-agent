@@ -174,28 +174,41 @@ def test_learning_journal_is_a_collapsible_end_of_lesson_reflection():
 
 
 def test_chapter_one_has_an_executable_learning_lab_surface():
-    source = (ROOT / "frontend/src/curriculum.tsx").read_text()
+    # The guided workbench replaced the v1 run/attach card: labs are now
+    # persistent sessions with manifest-declared actions and a real PTY.
+    workbench = (ROOT / "frontend/src/lab/GuidedLabWorkbench.tsx").read_text()
+    terminal = (ROOT / "frontend/src/lab/LabTerminal.tsx").read_text()
 
-    assert 'data-slot="learning-lab"' in source
-    assert 'fetch("/api/lab?chapter=' in source
-    assert 'fetch("/api/lab/run"' in source
-    assert 'fetch("/api/lab/attach"' in source
-    assert "Run measurement" in source
-    assert "Run verification" in source
-    assert "Attach to Waku" in source
+    assert 'data-slot="learning-lab"' in workbench
+    assert '"/api/lab/session/start"' in workbench
+    assert '"/api/lab/action"' in workbench
+    assert '"/api/lab/completion/validate"' in workbench
+    assert '"/api/lab/terminal/open"' in terminal
+    assert "Attach to Waku" in workbench
+    manifest = json.loads(
+        (ROOT / "docs/scale/labs/01-baseline-slos.lab.v2.json").read_text()
+    )
+    commands = {
+        action["id"]: action["command"]
+        for action in manifest["actions"]
+        if action["kind"] == "command"
+    }
+    assert commands["measure"] == "make scale-01"
+    assert commands["verify"] == "make check-01"
 
 
 def test_learning_lab_is_a_first_class_route_with_truthful_preview_state():
     source = (ROOT / "frontend/src/curriculum.tsx").read_text()
+    workbench = (ROOT / "frontend/src/lab/GuidedLabWorkbench.tsx").read_text()
 
     assert '["lab", "Lab"]' in source
     assert 'requested === "lab"' in source
     assert 'href={`#learn/${chapter.number}/lab`}' in source
     assert "Open lab workspace" in source
-    assert 'lab.state === "preview"' in source
-    assert "Instrument preview" in source
-    assert "This failure instrument is not published yet" in source
     assert 'track === "lab" ? "Lab"' in source
+    assert 'catalogManifest.state === "preview"' in workbench
+    assert "Instrument preview" in workbench
+    assert "This failure instrument is not published yet" in workbench
 
 
 def test_chat_and_architecture_have_responsive_coaching_surfaces():
