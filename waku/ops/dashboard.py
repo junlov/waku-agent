@@ -62,6 +62,11 @@ def _repository_tags(root: Path) -> set[str]:
         pointer = git_dir.read_text().strip()
         if pointer.startswith("gitdir:"):
             git_dir = (root / pointer.split(":", 1)[1].strip()).resolve()
+    # Linked worktrees keep only per-worktree refs in their gitdir; shared
+    # refs (tags) live in the common dir the `commondir` file points at.
+    common_pointer = git_dir / "commondir"
+    if common_pointer.is_file():
+        git_dir = (git_dir / common_pointer.read_text().strip()).resolve()
     tags_dir = git_dir / "refs/tags"
     tags = {
         path.relative_to(tags_dir).as_posix()
