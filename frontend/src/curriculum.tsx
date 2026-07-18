@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -19,6 +19,12 @@ import type {
 } from "./types.js";
 import "./curriculum.css";
 
+// The guided workbench pulls in xterm + CodeMirror (~1.2 MB); keep it out of
+// the main bundle and load it only when a learner opens the lab track.
+const GuidedLabWorkbench = lazy(() =>
+  import("./lab/GuidedLabWorkbench.js").then((module) => ({ default: module.GuidedLabWorkbench })),
+);
+
 declare global {
   interface Window {
     WakuCurriculum?: CurriculumAdapter;
@@ -28,6 +34,7 @@ declare global {
 const roots = new WeakMap<HTMLElement, Root>();
 const JOURNAL_STORAGE_PREFIX = "waku-learning-journal:v1";
 let activeLearningContext: LearningContextPayload | null = null;
+let activeLabSessionId: string | null = null;
 
 type PersistedLearningJournal = LearningJournal & {
   chapter: string;
@@ -56,6 +63,11 @@ function loadJournal(chapter: string): LearningJournal {
 function publishLearningContext(context: LearningContextPayload | null) {
   activeLearningContext = context;
   window.dispatchEvent(new CustomEvent("waku-learning-context", { detail: context }));
+}
+
+function publishLabSession(sessionId: string | null) {
+  activeLabSessionId = sessionId;
+  window.dispatchEvent(new CustomEvent("waku-lab-session", { detail: { sessionId } }));
 }
 
 function serverTimestamp(value: string): string {
@@ -240,158 +252,6 @@ function LearningJournalPanel({ chapter, track }: { chapter: CurriculumChapter; 
   );
 }
 
-interface LabAttempt {
-  id: number;
-  action: "command" | "measure" | "verify";
-  command: string;
-  exit_code: number;
-  output: string;
-  duration_ms: number;
-  started_at: string;
-  attached_to_journal: number;
-}
-
-interface LabState {
-  attempts: LabAttempt[];
-}
-
-function LearningLab({ chapter, track }: { chapter: CurriculumChapter; track: CurriculumTrack }) {
-  const [attempts, setAttempts] = useState<LabAttempt[]>([]);
-  const [command, setCommand] = useState("pwd");
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  const lab = chapter.lab;
-
-  const refresh = () => fetch("/api/lab?chapter=" + encodeURIComponent(chapter.number))
-    .then((response) => response.json())
-    .then((result: LabState) => setAttempts(result.attempts || []));
-
-  useEffect(() => {
-    refresh().catch(() => setError("The lab service is unavailable."));
-  }, [chapter.number]);
-
-  if (!lab) return null;
-  const preview = lab.state === "preview";
-
-  const run = async (action: LabAttempt["action"], requestedCommand?: string) => {
-    setBusy(action);
-    setError("");
-    try {
-      const response = await fetch("/api/lab/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chapter: chapter.number, action, command: requestedCommand }),
-      });
-      const result = await response.json();
-      if (result.error) throw new Error(result.error);
-      setAttempts((current) => [result as LabAttempt, ...current]);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The command failed to start.");
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const attach = async (attempt: LabAttempt) => {
-    setBusy(`attach-${attempt.id}`);
-    setError("");
-    try {
-      const response = await fetch("/api/lab/attach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attempt_id: attempt.id, chapter: chapter.number, track }),
-      });
-      const result = await response.json();
-      if (result.error) throw new Error(result.error);
-      setAttempts((current) => current.map((item) => (
-        item.id === attempt.id ? { ...item, attached_to_journal: 1 } : item
-      )));
-      window.dispatchEvent(new Event("waku-journal-refresh"));
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Evidence could not be attached.");
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const latest = attempts[0];
-  return (
-    <section data-slot="learning-lab" className="wf-learning-lab mt-10 rounded-xl border border-border bg-card">
-      <div className="wf-lab-heading">
-        <div>
-          <div className="wf-eyebrow">Hands-on workspace · Chapter {chapter.number}</div>
-          <h3 className="mt-2 text-2xl font-bold tracking-tight text-foreground">Learning lab</h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{lab.scenario}</p>
-        </div>
-        <Badge tone={preview ? "neutral" : "success"}>{preview ? "Instrument preview" : "Sandbox connected"}</Badge>
-      </div>
-
-      <div className="wf-lab-grid">
-        <div className="wf-lab-objectives">
-          <div className="wf-eyebrow">Objectives</div>
-          <ol className="mt-4 space-y-4">
-            {lab.objectives.map((objective, index) => (
-              <li key={objective} className="flex gap-3 text-sm leading-6 text-foreground">
-                <span className="wf-lab-step">{index + 1}</span><span>{objective}</span>
-              </li>
-            ))}
-          </ol>
-          <div className="mt-6 grid gap-2">
-            <button className="wf-lab-action" disabled={preview || Boolean(busy)} onClick={() => run("measure")}>
-              <span>Run measurement</span><code>{lab.measure}</code>
-            </button>
-            <button className="wf-lab-action" disabled={preview || Boolean(busy)} onClick={() => run("verify")}>
-              <span>Run verification</span><code>{lab.verify}</code>
-            </button>
-          </div>
-        </div>
-
-        <div className="wf-lab-console">
-          <div className="wf-lab-console-bar">
-            <span><i className={preview ? "is-preview" : ""} /> {preview ? "instrument pending" : "sandbox · /workspace"}</span>
-            {latest ? <span className={latest.exit_code === 0 ? "is-green" : "is-red"}>exit {latest.exit_code} · {latest.duration_ms}ms</span> : <span>ready</span>}
-          </div>
-          <pre aria-live="polite">{latest
-            ? `$ ${latest.command}\n${latest.output || "(no output)"}`
-            : preview
-              ? `# This failure instrument is not published yet.\n# Preview the scenario and objectives now; execution unlocks with the chapter.`
-              : "$ Run the baseline measurement or enter a command below."}</pre>
-          <form className="wf-lab-prompt" onSubmit={(event) => { event.preventDefault(); if (command.trim()) run("command", command.trim()); }}>
-            <span aria-hidden="true">$</span>
-            <input aria-label="Sandbox command" value={command} disabled={preview} onChange={(event) => setCommand(event.target.value)} spellCheck={false} />
-            <button disabled={preview || Boolean(busy) || !command.trim()}>{busy ? "Running…" : "Run"}</button>
-          </form>
-          {error ? <p className="wf-lab-error" role="alert">{error}</p> : null}
-        </div>
-      </div>
-
-      {attempts.length ? (
-        <div className="wf-lab-history">
-          <div className="flex items-center justify-between gap-3">
-            <div className="wf-eyebrow">Attempt history</div>
-            <span className="text-xs text-muted-foreground">You choose what becomes journal context.</span>
-          </div>
-          <div className="mt-3 divide-y divide-border">
-            {attempts.slice(0, 6).map((attempt) => (
-              <div key={attempt.id} className="wf-lab-attempt">
-                <span className={attempt.exit_code === 0 ? "wf-lab-result is-green" : "wf-lab-result is-red"}>{attempt.exit_code === 0 ? "Passed" : "Failed"}</span>
-                <code className="min-w-0 truncate">{attempt.command}</code>
-                <span className="text-xs text-muted-foreground">{attempt.duration_ms}ms</span>
-                {attempt.attached_to_journal
-                  ? <span className="text-xs font-semibold text-[var(--success)]">Attached</span>
-                  : <button disabled={Boolean(busy)} onClick={() => attach(attempt)}>Attach to Waku</button>}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      <p className="wf-lab-footnote">{preview
-        ? "Preview only. This chapter's deterministic failure instrument will be published when its runnable start point is ready."
-        : "Commands run only inside the training container. Lab attempts are evidence, not completion; the Git-backed chapter check remains authoritative."}</p>
-    </section>
-  );
-}
-
 const statusLabel: Record<ChapterStatus, string> = {
   passed: "Passed",
   current: "Current",
@@ -560,7 +420,13 @@ function LessonReader({ catalog, route }: { catalog: CurriculumCatalog; route: s
       </nav>
 
       {track === "lab" ? (
-        <LearningLab chapter={chapter} track={track} />
+        <Suspense fallback={<p className="mt-10 text-sm text-muted-foreground" role="status">Loading the lab workbench…</p>}>
+          <GuidedLabWorkbench
+            chapter={chapter}
+            journalPanel={<LearningJournalPanel key={chapter.number} chapter={chapter} track={track} />}
+            onSessionChange={publishLabSession}
+          />
+        </Suspense>
       ) : (
         <a className="wf-lab-callout" href={`#learn/${chapter.number}/lab`}>
           <span>
@@ -603,7 +469,7 @@ function LessonReader({ catalog, route }: { catalog: CurriculumCatalog; route: s
         </aside>
       </div> : null}
 
-      <LearningJournalPanel key={chapter.number} chapter={chapter} track={track} />
+      {track !== "lab" ? <LearningJournalPanel key={chapter.number} chapter={chapter} track={track} /> : null}
 
       <nav data-slot="lesson-pagination" aria-label="Adjacent lessons" className="mt-11 grid grid-cols-2 gap-4 border-t border-border pt-6">
         {previous ? <a className="rounded-lg border border-border bg-card p-4 text-foreground no-underline hover:border-primary" href={`#learn/${previous.number}`}><span className="block text-[0.62rem] uppercase tracking-wider text-muted-foreground">← Previous</span><strong className="mt-1 block text-sm">{previous.title}</strong></a> : <span />}
@@ -635,6 +501,9 @@ window.WakuCurriculum = {
   },
   getLearningContext() {
     return activeLearningContext;
+  },
+  getLabSessionId() {
+    return activeLabSessionId;
   },
 };
 

@@ -5,7 +5,20 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    {
+      name: "strip-generated-trailing-whitespace",
+      generateBundle(_options, bundle) {
+        for (const output of Object.values(bundle)) {
+          if (output.type === "chunk") {
+            output.code = output.code.replace(/[ \t]+$/gm, "");
+          }
+        }
+      },
+    },
+  ],
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
   },
