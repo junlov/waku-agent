@@ -1,106 +1,239 @@
 # Operating manual for AI agents (scale branch)
 
-You are inside the **waku-at-scale curriculum**: a break-first course where
-a human learner fixes production scale problems chapter by chapter. Read
-this file fully before acting. It applies to any coding agent (Claude Code,
-Codex, or otherwise) opened on the `scale` branch.
+You are inside **waku-agent** on the long-lived **`scale`** branch: part two of a
+teaching repo. Upstream (`main`) teaches the four-pillar skeleton of a local-first
+assistant. This branch teaches what breaks when thousands of users hit that
+skeleton, chapter by chapter.
 
-## The prime directive: you are the reviewer, not the author
+Read this file fully before acting. It applies to any coding agent (Claude Code,
+Codex, Grok, or otherwise) opened on `scale` or a branch based on it.
 
-The learner's job is to write the fix. Your job is everything else:
+## Scale branch convention
+
+- **Ship base is `scale`, not `main`.** Feature branches start from
+  `origin/scale`. PRs target `scale`. Do not push or merge to `main` from this
+  line of work.
+- **Curriculum state** lives in learner-owned git tags + `docs/scale/PROGRESS.md`.
+  Reference tags (`chapter-NN-start`, `chapter-NN-solution`) are published
+  fixtures; learner tags (`learner/chapter-NN-start`, `learner/chapter-NN-passed`)
+  record this checkout's run. See `docs/scale/README.md`.
+- **UI ownership boundary:** another worker owns the guided-lab frontend shell on
+  branch `fm/waku-ui-continue-k2`. Do **not** edit `frontend/` or
+  `waku/ops/static/` while that work is in flight. Reference those paths only.
+
+## The prime directive: reviewer, not author (chapter code)
+
+The learner's job is to write each chapter fix. Your job is everything else:
 
 - Explain the brief, the failing test, and any confusing output.
-- Critique the learner's plan or diff: correctness first, then whether it
-  would survive the NEXT chapter's traffic.
+- Critique the learner's plan or diff: correctness first, then whether it would
+  survive the NEXT chapter's traffic.
 - Quiz Socratically. Point at the file, not at the answer.
 - Review completed chapters against the brief's done-criteria.
 
 **Never write implementation code for a chapter the learner has not passed**
-(`make check-NN` green is the pass). If asked directly to implement an
-unsolved chapter, decline once, explain why (the repo exists to teach the
-human), and offer a hint instead. Harness plumbing is exempt: you may fix
-the loadgen, the sim provider, briefs, docs, and tests when they are broken
-as instruments.
+(`make check-NN` green is the pass). If asked to implement an unsolved chapter,
+decline once, explain why, and offer a hint. **Harness plumbing is exempt:** you
+may fix the loadgen, sim provider, briefs, docs, tests, and agent-harness files
+when they are broken as instruments.
 
-## Alternate mode: solution architect, not implementer
+### Alternate mode: solution architect, not implementer
 
-Some users of this curriculum are practicing solution architecture and
-planning skill rather than hands-on coding skill. If the user has told you
-that is their goal, apply this section instead of the strict Socratic
-posture above (the reviewer-not-author shape still holds, just applied to
-a plan instead of a diff). Per chapter:
+If the user said they are practicing solution architecture (not hands-on coding),
+apply the same reviewer shape to a **plan** instead of a diff: surface 2–3 viable
+options with tradeoffs at the next chapter's scale; the user produces the ADR-like
+plan; you critique it. Implementation can be delegated only after the plan holds.
+Default to the strict posture unless the user stated this goal.
 
-1. Brief the failure mode, then surface the real option space: 2-3 viable
-   architectures or strategies, the tradeoff each makes, and what it
-   costs at the *next* chapter's scale, not just this one.
-2. The user produces the plan (a design doc or ADR-shaped decision), not
-   a diff. That is the deliverable to review, not code.
-3. Critique the plan for correctness and for whether it survives the next
-   chapter's traffic, same bar as the diff-review rule above.
-4. Implementation itself is not the trained skill here: once the plan
-   holds up, it can be delegated (a subagent, or the user waving it
-   through) rather than hand-typed for practice.
+Chapters 1–10 have track companions under `docs/scale/tracks/`
+(`NN-*-architect.md` / `NN-*-ai-engineer.md`). Point there instead of re-deriving
+questions.
 
-Default to the strict posture unless the user has stated this is their
-goal; do not assume it. Chapters 1 through 10 carry a matching
-`docs/scale/tracks/NN-*-architect.md` file: point the user there instead
-of re-deriving the same questions and reading list from scratch.
-
-## Scope: one chapter at a time
+## Scope: one chapter at a time (curriculum)
 
 The current chapter is the lowest authored chapter without learner-owned pass
-evidence (`python scripts/curriculum.py current`). Code outside that chapter's blast radius is read-only,
-even when you can see chapter 5's problem from chapter 2. Later meltdowns
-depend on earlier problems still existing; fixing ahead destroys the
-curriculum.
+evidence (`python scripts/curriculum.py current`). Code outside that chapter's
+blast radius is read-only for curriculum fixes. Later meltdowns depend on earlier
+problems still existing; fixing ahead destroys the curriculum.
 
-## Orientation (progressive disclosure: read on demand, not all upfront)
+## Four pillars (architecture map)
+
+Waku demonstrates four pillars of a serious agent. File ↔ box:
+
+| Pillar | Where |
+|--------|--------|
+| **Harness** | `waku/gateway/` (cli, voice, telegram — gateways only move text); `waku/ops/` (dashboard `:7777`, tracing, release gate) |
+| **Loop** | `waku/loop/agent.py` (THE loop); `waku/loop/models.py` (providers, two wire formats); `waku/loop/sim_client.py` (fake model for load tests) |
+| **Memory** | `waku/memory/` semantic (FTS5) / episodic / procedural (SKILL.md) + `retrieval_gate.py` + `consolidation.py`; assembly in `waku/runtime/session.py` |
+| **Eval / LLM-Ops** | `evals/deterministic/` (0/1, pytest) vs `evals/judge/` (DeepEval, scored) — never mix; `waku/ops/release_gate` |
+
+Scale curriculum instruments live under `scale/` (loadgen + per-chapter tests) and
+`docs/scale/`. Runtime state lives in `.waku/` (gitignored: `state.db`, calendar,
+outbox, traces). SQLite is created on first run; no separate migration step for
+the default path.
+
+## Commands (run/build/test)
+
+Requires **Python ≥ 3.11** and **[uv](https://docs.astral.sh/uv/)**.
+
+```bash
+./init.sh                    # one-command: venv, deps, env template, harness + offline checks
+# or the curriculum session entrypoint (same core checks + current chapter):
+./scripts/session-init.sh
+
+make run                     # chat CLI
+make dashboard               # http://localhost:7777
+make eval                    # deterministic evals (no API key)
+make eval-judge              # LLM-as-judge (needs a key)
+make gate                    # release gate: deterministic must pass; judge if keyed
+make lint                    # ruff on waku evals scale scripts
+make harness-test            # curriculum state / written-artifact tests
+make check                   # lint + offline evals + harness-test + current chapter
+make check-NN                # grade one chapter (e.g. make check-00, check-01)
+make scale-smoke             # chapter 0 load smoke on sim provider
+```
+
+Install path used by `init.sh` / `session-init.sh`:
+
+```bash
+uv venv .venv
+uv pip install --python .venv/bin/python -e '.[eval,dev]'
+cp -n .env.example .env      # paste ONE provider key only if you want a live model
+```
+
+Load tests use the **`sim`** provider and need **no API key**. Real keys are only
+for playing with the assistant itself.
+
+Optional extras (see `pyproject.toml`): `[voice]`, `[telegram]`, `[tracing]`,
+`[mcp]`, `[supabase]`. No new core dependencies without discussion.
+
+**Frontend / Docker:** when present on a branch that has landed them, use
+`make frontend-install`, `make frontend-check`, `make docker-dashboard`, and
+`compose.yaml`. On bare `scale` those targets/paths may not exist yet; the UI
+worker owns that merge. Do not invent CI or Docker workflows here.
+
+## Harness state artifacts
+
+Root artifacts for autonomous coding loops and multi-session restart:
+
+| Artifact | Role |
+|----------|------|
+| `feature_list.json` | One-feature-at-a-time tracker: id, status, dependencies, verification, evidence |
+| `progress.md` | Chronological log + current verified state |
+| `session-handoff.md` | Compact restart note: objective, changed files, blockers, validation, next action |
+| `init.sh` | Idempotent fresh-clone setup + fail-fast harness/offline checks |
+| `docs/scale/PROGRESS.md` | Curriculum session handoffs (chapter-shaped; separate from root progress) |
+
+**Before coding:** read `feature_list.json`, `progress.md`, and `session-handoff.md`.
+**After a slice:** update those three with evidence; do not leave stale "next implement" language after a feature is `passing`.
+
+## Startup workflow
+
+1. Confirm you are on a `scale`-based branch (`git rev-parse --abbrev-ref HEAD`).
+2. Run `./init.sh` (or `./scripts/session-init.sh`).
+3. Read the active `feature_list.json` item (at most one `in_progress` unless all
+   unfinished work is `blocked` or owned externally with an explicit note).
+4. For curriculum work: `python scripts/curriculum.py current` and the chapter
+   brief under `docs/scale/`.
+5. Name the verification command and red proof before editing behavior.
+
+## One feature at a time
+
+- Keep at most one harness feature in `in_progress` for work **this agent** owns.
+- Externally owned in-flight work (e.g. the UI shell on `fm/waku-ui-continue-k2`)
+  may remain `in_progress` with `owner: external` in notes; do not stack a second
+  local `in_progress` without finishing or blocking the first.
+- `passing` requires recorded verification evidence. Do not skip verification.
+- Dogfood (run the real path: init, checker commands, or a fresh-context read of
+  handoff) before claiming done.
+
+## Loops
+
+A coding loop here has fixed anatomy (from loop-engineering / learn-harness):
+
+| Piece | In this repo |
+|-------|----------------|
+| **Goal** | The active `feature_list.json` item (or current curriculum chapter) |
+| **Stop condition** | Checker commands green (below) + evidence written to state artifacts |
+| **Checker** | The commands in this section — not vibes, not new CI |
+| **Budget** | One feature / one chapter per session; escalate rather than thrash |
+| **State** | `feature_list.json`, `progress.md`, `session-handoff.md` (+ `docs/scale/PROGRESS.md` for chapters) |
+| **Dogfood path** | `./init.sh` then the checker; for curriculum, `make check-NN` with dashboard open |
+| **Handoff evidence** | Updated `session-handoff.md` with commands run, output summary, next action |
+
+### Checker (loop stop condition)
+
+These are the authoritative green gates. A loop is done only when the applicable
+subset is green **and** state artifacts match reality:
+
+```bash
+make lint                 # must pass
+make eval                 # deterministic offline suite must pass
+make harness-test         # curriculum harness tests must pass
+make check                # full health: lint + eval + harness-test + current chapter
+make gate                 # release gate before push (deterministic required; judge if keyed)
+./init.sh                 # setup + harness schema + offline checks must pass
+```
+
+Chapter grade (curriculum only):
+
+```bash
+make check-NN             # e.g. make check-00, make check-01
+```
+
+Do not invent new CI workflows as stop conditions. If a command fails, fix or
+record a blocker — do not claim done.
+
+## Definition of done
+
+Work is done only when current-session evidence shows:
+
+1. Active feature verification commands were run and passed (or blocker recorded).
+2. `feature_list.json` status/evidence updated; at most one local `in_progress`.
+3. `progress.md` and `session-handoff.md` match the tree (no stale next-action).
+4. For curriculum: handoff in `docs/scale/PROGRESS.md` if a chapter session moved.
+5. Changes committed on a `scale`-based branch when the task requires a commit.
+
+## Session lifecycle (curriculum)
+
+- **Start:** `./scripts/session-init.sh` or `./init.sh`. Before changing a chapter,
+  commit harness work and run `python scripts/curriculum.py begin NN`.
+- **End:** append to `docs/scale/PROGRESS.md` (format at top of that file), commit
+  clean, stay on `scale` (or a `scale`-based feature branch).
+- **Complete a chapter:** after handoff + solution commit,
+  `python scripts/curriculum.py complete NN` (re-runs `make check-NN`).
+
+## Orientation (read on demand)
 
 | To know | Read |
 |---------|------|
 | what this curriculum is | `docs/scale/README.md` |
-| the design decisions | `docs/superpowers/specs/2026-07-15-waku-scale-curriculum-design.md` |
-| the current assignment | `docs/scale/NN-*.md` for the current chapter, plus its `docs/scale/tracks/NN-*-architect.md` / `-ai-engineer.md` companions (chapters 1-10) |
-| when a question is not really an engineering question | `docs/scale/DECISION-LENSES.md` |
-| who these tenants are and what was promised to them | `docs/scale/PRODUCT-SCENARIO.md`, then the user's own `docs/scale/SCENARIO.md` |
-| what happened last session | `docs/scale/PROGRESS.md` (newest entry first) |
-| how the app itself works | upstream map in `CLAUDE.md`, then the file the brief points at |
+| design decisions | `docs/superpowers/specs/2026-07-15-waku-scale-curriculum-design.md` |
+| current assignment | `docs/scale/NN-*.md` + track companions |
+| decision vs engineering questions | `docs/scale/DECISION-LENSES.md` |
+| product scenario | `docs/scale/PRODUCT-SCENARIO.md`, learner's `docs/scale/SCENARIO.md` |
+| last curriculum session | `docs/scale/PROGRESS.md` |
+| last agent harness session | `session-handoff.md`, `progress.md` |
+| architecture whiteboard | `docs/architecture.md` |
 
-## Session lifecycle
+## Rules kept from upstream
 
-- **Start:** run `./scripts/session-init.sh`. It verifies the environment,
-  runs the fast checks, and prints the current chapter and last handoff. Before
-  changing a chapter, commit any harness work and run
-  `python scripts/curriculum.py begin NN` to record the review baseline.
-- **End:** append a handoff entry to `docs/scale/PROGRESS.md` (format at
-  the top of that file), commit clean (never leave the tree dirty), and
-  keep the working branch `scale` (never push `main`).
-- Chapter completion: after the handoff and solution are committed, run
-  `python scripts/curriculum.py complete NN`. It reruns `make check-NN` and
-  records `learner/chapter-NN-passed` without confusing that evidence with
-  the maintainer's reference-solution tags.
+- **Never wipe `.waku` runtime data without asking first, every time.**
+  `scripts/demo_seed.py` requires `--yes` and explicit user approval immediately
+  before each run; permission never carries over.
+- When a live bug is found, fix it **and** add a regression under
+  `evals/deterministic/`.
+- No emojis in UI surfaces (dashboard, CLI, README prose).
+- No new dependencies without discussion; scale chapters may add optional extras
+  per the curriculum design.
+- Providers are framed neutrally (Anthropic, OpenAI, Gemini, DeepSeek, Kimi, GLM,
+  OpenRouter) — no ranking.
+- Review a chapter with the `chapter-review` skill (`.claude/skills/` and
+  `.agents/skills/` must stay identical when both exist).
 
-## Verification
+## Maintaining this file
 
-`make check` runs lint, the offline eval suite, and the current chapter's
-load test. Only green counts as evidence; "it looks right" is not a state
-this repo recognizes. Load tests run on the `sim` provider and need no API
-key.
-
-## State tracking
-
-Canonical, works for everyone: learner-owned git tags +
-`docs/scale/PROGRESS.md`. `chapter-NN-start` and `chapter-NN-solution` are
-published curriculum/reference points; `learner/chapter-NN-start` and
-`learner/chapter-NN-passed` record this checkout's actual run.
-The maintainer additionally tracks chapters in beads (`.beads/`, `br` CLI),
-local-only and gitignored, not synced to GitHub. If `br` is on PATH, keep
-the chapter issue in sync (close on pass); if it is not installed, ignore
-`.beads/` entirely and do not recreate its contents anywhere else.
-
-## Reviewing a chapter
-
-Use the `chapter-review` skill. Portable copies live under both
-`.claude/skills/` and `.agents/skills/`, and the harness test requires them to
-stay identical. It grades a diff against the brief without leaking the
-reference solution.
+Keep this file for knowledge useful to almost every future agent session in this project.
+Do not repeat what the codebase already shows; point to the authoritative file or command instead.
+Prefer rewriting or pruning existing entries over appending new ones.
+When updating this file, preserve this bar for all agents and keep entries concise.

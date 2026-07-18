@@ -1,0 +1,148 @@
+{
+  "project": "waku-agent-scale-harness",
+  "branch_base": "scale",
+  "last_updated": "2026-07-18",
+  "rules": {
+    "at_most_one_local_in_progress": true,
+    "external_in_progress_allowed_with_owner_note": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true,
+    "dogfood_after_implementation": true,
+    "describe_reality_only": true
+  },
+  "status_legend": {
+    "not_started": "Work has not begun.",
+    "in_progress": "Active work (local or external owner).",
+    "blocked": "Cannot continue until a documented blocker is resolved.",
+    "passing": "Required verification passed and evidence is recorded."
+  },
+  "features": [
+    {
+      "id": "waku-ui-frontend-shell",
+      "name": "Guided lab frontend shell",
+      "description": "Factory-backed curriculum surface and guided lab workbench UI (editor, PTY terminal, three-pane layout) plus related dashboard static wiring. Owned by another worker; this checkout must not edit frontend/ or waku/ops/static/.",
+      "status": "in_progress",
+      "priority": 1,
+      "dependencies": [],
+      "owner": "external",
+      "owner_branch": "fm/waku-ui-continue-k2",
+      "verification": [
+        "On the UI branch: make frontend-check (pnpm typecheck + build) when frontend/ is present.",
+        "On the UI branch: relevant UI/orchestrator contract tests green.",
+        "Merge into scale without regressing make lint, make eval, make harness-test."
+      ],
+      "evidence": [
+        "Sibling worktree at treehouse pool path carries commits through Document tag-fetch requirement and worktree support in AGENTS.md (12aae69) atop guided-lab workbench backend/frontend WIP.",
+        "ADRs on UI branch: docs/adr/0005-sandbox-learning-labs.md, docs/adr/0006-guided-lab-workbench.md; compose.yaml and frontend/ present there but not on bare origin/scale.",
+        "Bare origin/scale (1c6cecb) has no frontend/, compose.yaml, or Dockerfile — UI work is not landed here yet."
+      ],
+      "notes": "External ownership. Do not touch frontend/ or waku/ops/static/ from harness or curriculum agents while this is in_progress."
+    },
+    {
+      "id": "waku-agent-harness-kit",
+      "name": "Root agent-harness kit",
+      "description": "Durable state artifacts and one-command setup so autonomous coding loops can restart from disk: AGENTS.md, feature_list.json, progress.md, session-handoff.md, init.sh, with CLAUDE.md pointing at AGENTS.md.",
+      "status": "passing",
+      "priority": 2,
+      "dependencies": [],
+      "verification": [
+        "./init.sh from the worktree root (and ideally from another cwd).",
+        "make lint && make eval && make harness-test",
+        "Fresh read of feature_list.json + session-handoff.md is enough to know active work and next action."
+      ],
+      "evidence": [
+        "2026-07-18: harness kit added on branch fm/waku-harness-g1 based on origin/scale.",
+        "Commands actually run green on this worktree: make lint; make eval (58 passed, 5 skipped); make harness-test (13 passed); make check-00 (1 passed); ./scripts/session-init.sh.",
+        "Methodology shape ported from autonomy harness + learn-harness-engineering + loop-engineering (goal/stop/checker/budget/state/dogfood/handoff) sized to waku-agent."
+      ],
+      "notes": "Completed by crewmate waku-harness-g1. CLAUDE.md is a symlink or thin pointer to AGENTS.md."
+    },
+    {
+      "id": "scale-ch00-instruments",
+      "name": "Chapter 0 harness instruments",
+      "description": "sim provider, loadgen, and smoke SLO path so later chapters have a reproducible offline load instrument.",
+      "status": "passing",
+      "priority": 3,
+      "dependencies": [],
+      "verification": [
+        "make check-00 / make scale-smoke"
+      ],
+      "evidence": [
+        "2026-07-15: check-00 green (15/15 turns, 0 errors) per docs/scale/PROGRESS.md.",
+        "2026-07-18 re-run on fm/waku-harness-g1: make check-00 passed (p50~6.1s, 0 errors, throughput ~52/min).",
+        "Tags present: chapter-00-start, chapter-00-solution."
+      ],
+      "notes": "No learner fix required; instrument chapter."
+    },
+    {
+      "id": "scale-learner-tag-separation",
+      "name": "Learner vs reference tag separation",
+      "description": "Curriculum state must not treat published chapter-NN-solution tags as learner pass evidence; begin/complete commands and harness tests enforce the split.",
+      "status": "passing",
+      "priority": 4,
+      "dependencies": [
+        "scale-ch00-instruments"
+      ],
+      "verification": [
+        "make harness-test",
+        "python scripts/curriculum.py current"
+      ],
+      "evidence": [
+        "2026-07-16 PROGRESS: rebuilt venv after profile migration; separated learner progress from reference tags; begin/complete + harness regression tests; chapter 0 green again.",
+        "2026-07-18: make harness-test 13 passed; curriculum.py current reports chapter 01."
+      ],
+      "notes": "Shipped on origin/scale (Repair scale curriculum harness after profile migration)."
+    },
+    {
+      "id": "scale-ch01-baseline-slo",
+      "name": "Chapter 1 baseline measurement and SLO contract",
+      "description": "Learner measures the global lock meltdown, answers the brief's questions, and writes docs/scale/SLO.md; make check-01 grades measurement plus the SLO artifact.",
+      "status": "not_started",
+      "priority": 5,
+      "dependencies": [
+        "scale-ch00-instruments",
+        "scale-learner-tag-separation"
+      ],
+      "verification": [
+        "python scripts/curriculum.py begin 01 (clean tree)",
+        "make check-01",
+        "docs/scale/SLO.md present and accepted by scripts/curriculum.py validate 01"
+      ],
+      "evidence": [],
+      "notes": "Current authored chapter per python scripts/curriculum.py current. Agents coach; learner authors the fix/artifacts unless harness plumbing is broken."
+    },
+    {
+      "id": "scale-ch02-concurrency-instrument",
+      "name": "Chapter 2 concurrency load instrument",
+      "description": "Encode the failing concurrency load test and chapter-02-start tag so make check-02 becomes the grade for per-session concurrency work. Brief already exists at docs/scale/02-concurrency.md.",
+      "status": "not_started",
+      "priority": 6,
+      "dependencies": [
+        "scale-ch01-baseline-slo"
+      ],
+      "verification": [
+        "chapter-02-start tag exists and is discoverable from worktrees",
+        "make check-02 fails on pre-fix code and passes after the learner fix inside SLO"
+      ],
+      "evidence": [],
+      "notes": "docs/scale/README.md: chapters 2–10 have briefs/tracks; load tests and check-NN land as the curriculum reaches them. Do not invent the test until ch1 baseline numbers exist."
+    },
+    {
+      "id": "scale-product-scenario-prereq",
+      "name": "Product scenario before chapter 1 design",
+      "description": "Learners pick a product archetype into docs/scale/SCENARIO.md so later isolation/budget/shedding choices trace to one product promise.",
+      "status": "passing",
+      "priority": 7,
+      "dependencies": [],
+      "verification": [
+        "docs/scale/PRODUCT-SCENARIO.md documents the choice process",
+        "docs/scale/SCENARIO.md exists for this checkout (template or filled)"
+      ],
+      "evidence": [
+        "origin/scale includes PRODUCT-SCENARIO.md, SCENARIO.md, and commit 'Add product scenario as a prerequisite step before chapter 1'.",
+        "AGENTS.md and docs/scale/README.md route learners through the scenario before SLO work."
+      ],
+      "notes": "Harness/docs complete; each learner still fills their own SCENARIO.md content."
+    }
+  ]
+}
