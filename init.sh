@@ -74,11 +74,21 @@ echo "Branch: ${branch:-detached}"
 if [[ -n "$branch" && "$branch" != "scale" && "$branch" != scale/* && "$branch" != fm/* ]]; then
   echo "NOTE: ship base for this project is 'scale'. Feature branches should be based on origin/scale."
 fi
-if git show-ref --verify --quiet refs/remotes/origin/scale; then
-  if ! git merge-base --is-ancestor origin/scale HEAD; then
-    echo "Current HEAD must descend from origin/scale." >&2
-    exit 1
-  fi
+if ! git show-ref --verify --quiet refs/remotes/origin/scale; then
+  echo "origin/scale not found; attempting to fetch it"
+  git fetch origin scale:refs/remotes/origin/scale || true
+fi
+if ! git show-ref --verify --quiet refs/remotes/origin/scale; then
+  echo "origin/scale is required to validate scale branch lineage." >&2
+  exit 1
+fi
+if git merge-base --is-ancestor origin/scale HEAD; then
+  echo "OK: HEAD descends from origin/scale."
+elif git merge-base origin/scale HEAD >/dev/null 2>&1; then
+  echo "NOTE: HEAD shares scale lineage but is behind origin/scale; consider rebasing onto origin/scale."
+else
+  echo "Current HEAD is not based on origin/scale (no merge-base found)." >&2
+  exit 1
 fi
 git status --short --branch || true
 
