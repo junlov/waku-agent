@@ -16,15 +16,16 @@ Git state.
 ## System workspace
 
 The operational dashboard for the running agent: overview, gateway, loop,
-memory, tools, database, Ops, settings, and chat. It remains available while the
-curriculum surface is migrated independently.
+memory, tools, database, Ops, settings, and chat. Its React shell owns routing,
+navigation, page framing, and polling while unmigrated evidence panels remain
+behind the legacy view adapter.
 
 ## Factory adapter
 
-The tagged `@landing-factory/ui` dependency and the Waku theme that adapt
-Factory's stable design-system interface to the curriculum surface. Waku owns
-curriculum composition and brand values; Factory owns reusable UI behavior,
-semantic token roles, and public slots.
+The tagged `@landing-factory/ui` dependency, shadcn primitives, and Waku theme
+used by the React dashboard shell and curriculum surface. Waku owns composition
+and brand values; Factory owns reusable UI behavior, semantic token roles, and
+public slots.
 
 ## Learning journal
 

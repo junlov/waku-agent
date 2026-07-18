@@ -43,12 +43,13 @@ regression checks. It is not the long-term implementation.
   image copies them with `waku/`, stays network-free during its build, and ships
   only the Python runtime. This is required because the supported Apple
   container builder cannot resolve public package registries reliably.
-- A later ADR may migrate the system workspace after the curriculum adapter has
-  proved the integration seam. This decision does not assume that migration.
+- The integration seam later supported an incremental system-workspace
+  migration: React now owns the shell while the remaining evidence panels stay
+  behind the legacy view adapter.
 
 ## Recovery
 
-Disable the compiled curriculum script in `static/index.html`; the existing
-JavaScript curriculum renderer continues to use the same catalog interface.
-Reverting the frontend build does not change curriculum content, learner Git
-state, or the system workspace.
+Restore the previous frontend source and versioned static assets as one unit;
+the legacy library no longer bootstraps the dashboard shell independently.
+Reverting the frontend build does not change curriculum content or learner Git
+state.

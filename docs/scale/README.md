@@ -116,11 +116,12 @@ great; pasting the brief and asking "implement this" defeats the repo.)
 
 ## Curriculum
 
-The learner UI is implemented in `frontend/` as a React/Vite adapter over the
-repository-backed `/api/curriculum` catalog. It consumes Factory's immutable
-`ui-v1.1.0` tag; `make frontend-check` typechecks and regenerates the versioned
-assets under `waku/ops/static/react/`. The Python runtime and container only
-serve those assets and do not install Node dependencies.
+The dashboard UI is implemented in `frontend/`. Its React/Vite shell owns the
+learner surface, router, navigation, page framing, and data polling; unmigrated
+evidence panels remain behind the legacy view adapter. It consumes Factory's
+immutable `ui-v1.1.0` tag; `make frontend-check` typechecks and regenerates the
+versioned assets under `waku/ops/static/react/`. The Python runtime and
+container only serve those assets and do not install Node dependencies.
 
 **Runnable now:** chapters 0 and 1. Chapters 2 through 16 already have briefs
 and track-specific preparation, but their load tests and `make check-NN`

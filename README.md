@@ -78,11 +78,11 @@ A small web server you own (`127.0.0.1`, no cloud). The browser is just the UI �
 process runs every turn. This is the fastest way to *get* the system.
 
 A chat dock sits on every tab. Type or **speak**, and watch it flow through the harness on the
-Overview diagram: gate lights up → loop calls a tool → reply comes back → memory updates. The
-system workspace remains plain static files. The curriculum surface is a compiled React module
-that consumes the pinned `@landing-factory/ui` tag; its versioned assets ship with Waku, so running
-the dashboard still requires no frontend toolchain. Maintainers rebuild it with
-`make frontend-check`.
+Overview diagram: gate lights up → loop calls a tool → reply comes back → memory updates. A
+compiled React shell owns the dashboard router, sidebar, page header, data polling, and curriculum;
+the remaining evidence panels render through the legacy static view adapter. The versioned assets
+ship with Waku, so running the dashboard requires no frontend toolchain. Maintainers rebuild them
+with `make frontend-check`.
 
 Each tab is one pillar, linked to the real files:
 
@@ -439,10 +439,12 @@ the starter before requesting a supervised restart. MCP enablement is explicit
 and stored in the durable `.waku/mcp.json`; local tools load only in sandbox
 mode. Scaffolding refuses to overwrite an existing integration.
 
-Every provider, tool, custom integration, and MCP lifecycle/run event is stored
-as a redacted structured row in SQLite. The immediate result appears in Chat,
-per-server connection health appears in **Tools → MCP**, and the chronological
-history appears in **Ops → Integration events**. See
+Recorded provider, tool, custom integration, and MCP lifecycle/run events are
+stored as redacted structured rows in SQLite. Telemetry persistence is best
+effort and never replaces a tool result or prevents another MCP server from
+connecting. The immediate result appears in Chat, per-server connection health
+appears in **Tools → MCP**, and the chronological history appears in
+**Ops → Integration events**. See
 [`ADR-0004`](docs/adr/0004-agent-authored-integrations-and-observability.md).
 
 MCP connections may use `stdio` or `streamable_http`. Remote credentials belong

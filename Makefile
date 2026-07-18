@@ -28,10 +28,10 @@ dashboard:      ## everything on one page — http://localhost:7777
 frontend-install: ## install the pinned Factory UI dependency
 	pnpm --dir frontend install --frozen-lockfile
 
-frontend-build:  ## compile the Factory-backed curriculum adapter
+frontend-build:  ## compile the React dashboard shell and curriculum
 	pnpm --dir frontend build
 
-frontend-check:  ## typecheck and rebuild the curriculum adapter
+frontend-check:  ## typecheck and rebuild the React dashboard frontend
 	pnpm --dir frontend typecheck
 	pnpm --dir frontend build
 

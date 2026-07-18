@@ -31,10 +31,13 @@ uses its existing `run_command` tool to replace the starter behavior, run tests,
 and request a supervised restart. The supervisor and last-known-good checkpoint
 remain the recovery boundary.
 
-Every provider, native tool, custom tool, and MCP lifecycle/run failure writes a
-redacted structured row to SQLite. Chat shows the immediate result, Tools shows
-current MCP health plus an explicit handshake test, and Ops shows the
-chronological event history. JSONL traces remain the raw per-turn evidence.
+Provider, native-tool, custom-tool, and MCP lifecycle/run telemetry is redacted
+before a best-effort write to SQLite. Telemetry failure never changes the tool
+result or blocks the agent loop. A malformed or unreachable MCP server records
+its own error when possible and does not prevent other configured servers from
+connecting. Chat shows the immediate result, Tools shows current MCP health plus
+an explicit handshake test, and Ops shows the chronological event history.
+JSONL traces remain the raw per-turn evidence.
 
 ## Constraints
 
