@@ -472,6 +472,27 @@ def test_supervisor_rejects_unsafe_path_layouts_before_mutation(tmp_path, monkey
     assert not runtime.exists()
 
 
+def test_supervisor_requires_persistent_replays_inside_runtime_but_outside_checkpoint(
+    tmp_path, monkeypatch,
+) -> None:
+    seed = tmp_path / "seed"
+    workspace = tmp_path / "workspace"
+    runtime = tmp_path / "runtime"
+    checkpoint = runtime / "checkpoints/last-good"
+    monkeypatch.setenv("WAKU_SEED", str(seed))
+    monkeypatch.setenv("WAKU_WORKSPACE", str(workspace))
+    monkeypatch.setenv("WAKU_RUNTIME", str(runtime))
+    monkeypatch.setenv("WAKU_CHECKPOINT", str(checkpoint))
+    monkeypatch.setenv("WAKU_LAB_REPLAYS", str(workspace / "replays"))
+
+    with pytest.raises(RuntimeError, match="replay checkouts"):
+        sandbox_supervisor.Supervisor().validate_paths()
+
+    monkeypatch.setenv("WAKU_LAB_REPLAYS", str(checkpoint / "replays"))
+    with pytest.raises(RuntimeError, match="overlap"):
+        sandbox_supervisor.Supervisor().validate_paths()
+
+
 @pytest.mark.parametrize("state", ("dirty", "update-pending"))
 def test_child_failure_never_restores_over_learner_workspace(tmp_path, monkeypatch, state):
     workspace = tmp_path / "workspace"

@@ -9,6 +9,8 @@ from waku.ops.lab_checkpoint import CheckpointError, GitCheckpointManager
 from waku.ops.lab_sessions import LabSessionError, LabSessionStore
 from waku.ops.workspace_policy import workspace_mutation_lock
 
+GIT_TIMEOUT_SECONDS = 60
+
 
 class LabOrchestrationError(RuntimeError):
     """Git and SQLite lab state could not be reconciled safely."""
@@ -219,6 +221,7 @@ class LabOrchestrator:
         self,
         *args: str,
         check: bool = True,
+        timeout: float = GIT_TIMEOUT_SECONDS,
     ) -> subprocess.CompletedProcess[str]:
         try:
             return subprocess.run(
@@ -227,7 +230,12 @@ class LabOrchestrator:
                 text=True,
                 capture_output=True,
                 check=check,
+                timeout=timeout,
             )
+        except subprocess.TimeoutExpired as error:
+            raise LabOrchestrationError(
+                f"Git command timed out after {timeout:g}s: git {args[0]}"
+            ) from error
         except subprocess.CalledProcessError as error:
             detail = error.stderr.strip() or error.stdout.strip() or "Git command failed"
             raise LabOrchestrationError(detail) from error

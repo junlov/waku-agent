@@ -52,9 +52,12 @@ function renderMarkdown(text){
 let D = null;
 let CURRICULUM = null;
 let LEARNING_CONTEXT = null;
+let LAB_SESSION_ID = null;
 
 function learningTrackLabel(track){
-  return track === "engineer" ? "AI-engineer" : track === "architect" ? "Architect" : "Lesson";
+  return track === "engineer" ? "AI-engineer"
+    : track === "architect" ? "Architect"
+      : track === "lab" ? "Lab" : "Lesson";
 }
 function learningFieldCount(context){
   if (!context) return 0;
@@ -77,6 +80,10 @@ function syncLearningContext(){
 }
 window.addEventListener("waku-learning-context", event => {
   LEARNING_CONTEXT = event.detail || null;
+  syncLearningContext();
+});
+window.addEventListener("waku-lab-session", event => {
+  LAB_SESSION_ID = event.detail && event.detail.sessionId || null;
   syncLearningContext();
 });
 
@@ -476,6 +483,9 @@ async function sendChat(fromInput){
     ? window.WakuCurriculum.getLearningContext()
     : null;
   if (adapterContext) LEARNING_CONTEXT = adapterContext;
+  if (window.WakuCurriculum && window.WakuCurriculum.getLabSessionId){
+    LAB_SESSION_ID = window.WakuCurriculum.getLabSessionId() || null;
+  }
   CHAT.push({role:"user", text});
   const pending = {role:"waku", pending:true, stream:"", started: Date.now(), learning_context:LEARNING_CONTEXT};
   CHAT.push(pending);
@@ -484,7 +494,10 @@ async function sendChat(fromInput){
   const ticker = setInterval(() => { if (pending.pending && !pending.stream) syncChatLogs(); }, 1000);
   try {
     const res = await fetch("/api/chat/stream", {method:"POST",
-      headers:{"Content-Type":"application/json"}, body:JSON.stringify({message:text, learning_context: LEARNING_CONTEXT})});
+      headers:{"Content-Type":"application/json"}, body:JSON.stringify({
+        message:text, learning_context: LEARNING_CONTEXT,
+        ...(LAB_SESSION_ID ? {session_id: LAB_SESSION_ID} : {})
+      })});
     const reader = res.body.getReader(), dec = new TextDecoder();
     let buf = "";
     for (;;){
@@ -514,6 +527,7 @@ function wireDock(){
     document.body.classList.toggle("dock-closed", v);
     if (persist) localStorage.setItem("dockClosed", v?"1":"0");
   };
+  window.addEventListener("waku-coach-open", () => setClosed(false));
   if (close) close.onclick = () => setClosed(true);
   if (reopen) reopen.onclick = () => setClosed(false);
   const saved = localStorage.getItem("dockClosed");

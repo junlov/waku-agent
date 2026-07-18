@@ -842,14 +842,26 @@ def learning_journal_action(payload: object) -> dict:
     return {"ok": True, "journal": row}
 
 
-def learning_context_for_turn(payload: object) -> LearningContext | None:
+def learning_context_for_turn(
+    payload: object,
+    session_id: object = None,
+) -> LearningContext | None:
     """Persist the exact validated snapshot supplied to a curriculum chat turn."""
     if payload is None:
+        if session_id is not None:
+            raise ValueError("a lab session requires learning context for the coaching turn")
         return None
     result = learning_journal_action(payload)
     if result.get("error"):
         raise ValueError(result["error"])
-    return LearningContext.from_payload(payload, curriculum_catalog())
+    context = LearningContext.from_payload(payload, curriculum_catalog())
+    if session_id is not None:
+        if not isinstance(session_id, str) or not session_id.strip():
+            raise ValueError("lab session_id must be non-empty text")
+        from waku.ops.lab_api import get_lab_api
+
+        context = get_lab_api(ROOT).enrich_learning_context(context, session_id.strip())
+    return context
 
 
 _models_cache: dict[str, tuple[float, list]] = {}
@@ -1038,7 +1050,12 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Cache-Control", cache_control)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            # The browser disconnected mid-poll; nothing to deliver and no
+            # reason to dump a traceback for a routine client close.
+            self.close_connection = True
 
     def do_GET(self):  # noqa: N802 — http.server API
         if self.path == "/api/data":
@@ -1096,6 +1113,39 @@ class Handler(BaseHTTPRequestHandler):
             raw = self.rfile.read(length)
             self._send(json.dumps(transcribe_audio(raw)).encode(), "application/json")
             return
+        # Terminal output is a POST-backed SSE stream. Raw PTY bytes stay
+        # base64-encoded inside each JSON frame; a disconnected browser closes
+        # the complete terminal process group through the service adapter.
+        from waku.ops.lab_api import JSON_PATHS, SSE_PATH, get_lab_api
+
+        if self.path == SSE_PATH:
+            try:
+                payload = json.loads(self.rfile.read(length) or "{}")
+            except json.JSONDecodeError as exc:
+                payload = {"__json_error__": str(exc)}
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.close_connection = True
+
+            def emit_terminal(frame):
+                self.wfile.write(f"data: {json.dumps(frame, default=str)}\n\n".encode())
+                self.wfile.flush()
+
+            try:
+                if "__json_error__" in payload:
+                    raise ValueError(f"invalid JSON: {payload['__json_error__']}")
+                get_lab_api(ROOT).stream_terminal(payload, emit_terminal)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            except Exception as exc:
+                try:
+                    emit_terminal({"kind": "error", "error": f"{type(exc).__name__}: {exc}"})
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+            return
         # /api/chat/stream streams harness events (SSE) as the turn runs.
         if self.path == "/api/chat/stream":
             payload = json.loads(self.rfile.read(length) or "{}")
@@ -1116,10 +1166,21 @@ class Handler(BaseHTTPRequestHandler):
                 emit("done", {"error": "empty message"})
                 return
             try:
-                learning_context = learning_context_for_turn(payload.get("learning_context"))
+                lab_session_id = payload.get("lab_session_id", payload.get("session_id"))
+                learning_context = learning_context_for_turn(
+                    payload.get("learning_context"), lab_session_id
+                )
                 chat_stream(message, emit, learning_context=learning_context)
             except Exception as exc:  # surface as a terminal event, don't 500
                 emit("done", {"error": f"{type(exc).__name__}: {exc}"})
+            return
+        if self.path in JSON_PATHS:
+            try:
+                payload = json.loads(self.rfile.read(length) or "{}")
+                out = get_lab_api(ROOT).dispatch(self.path, payload)
+            except Exception as exc:
+                out = {"error": f"{type(exc).__name__}: {exc}"}
+            self._send(json.dumps(out, default=str).encode(), "application/json")
             return
         routes = {"/api/chat": None, "/api/memory": memory_action,
                   "/api/learning-journal": learning_journal_action,
@@ -1135,7 +1196,10 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if self.path == "/api/chat":
                 message = (payload.get("message") or "").strip()
-                learning_context = learning_context_for_turn(payload.get("learning_context"))
+                lab_session_id = payload.get("lab_session_id", payload.get("session_id"))
+                learning_context = learning_context_for_turn(
+                    payload.get("learning_context"), lab_session_id
+                )
                 out = chat(message, learning_context=learning_context) if message else {"error": "empty message"}
             elif self.path == "/api/lab/run":
                 from waku.ops.lab import run_lab_action

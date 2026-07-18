@@ -132,6 +132,8 @@ CREATE TABLE IF NOT EXISTS lab_sessions (
     id TEXT PRIMARY KEY,
     chapter TEXT NOT NULL,
     workspace_mode TEXT NOT NULL DEFAULT 'canonical',
+    workspace_key TEXT,
+    workspace_ref TEXT,
     current_step TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'in_progress'
         CHECK(status IN ('in_progress', 'paused', 'proof_ready', 'passed', 'abandoned')),
@@ -190,6 +192,19 @@ def _migrate(conn: sqlite3.Connection) -> None:
     for column in ("session_id", "step_id", "action_id"):
         if column not in attempt_cols:
             conn.execute(f"ALTER TABLE lab_attempts ADD COLUMN {column} TEXT DEFAULT NULL")
+
+    session_cols = {
+        row[1] for row in conn.execute("PRAGMA table_info(lab_sessions)").fetchall()
+    }
+    for column in ("workspace_key", "workspace_ref"):
+        if column not in session_cols:
+            conn.execute(f"ALTER TABLE lab_sessions ADD COLUMN {column} TEXT DEFAULT NULL")
+    conn.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS lab_sessions_workspace_key_unique
+        ON lab_sessions(workspace_key) WHERE workspace_key IS NOT NULL
+        """
+    )
     conn.commit()
 
 

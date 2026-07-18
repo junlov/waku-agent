@@ -87,6 +87,47 @@ def test_additive_migration_preserves_old_journal_and_attempt_rows(tmp_path) -> 
     assert reopened.execute("SELECT count(*) FROM learning_journal").fetchone()[0] == 1
 
 
+def test_additive_migration_preserves_sessions_created_before_replay_identity(
+    tmp_path,
+) -> None:
+    path = tmp_path / "state.db"
+    old = sqlite3.connect(path)
+    old.executescript(
+        """
+        CREATE TABLE lab_sessions (
+            id TEXT PRIMARY KEY,
+            chapter TEXT NOT NULL,
+            workspace_mode TEXT NOT NULL DEFAULT 'canonical',
+            current_step TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'in_progress',
+            timer_seconds INTEGER NOT NULL DEFAULT 0,
+            timer_started_at TEXT,
+            base_commit TEXT,
+            final_commit TEXT,
+            completion_ref TEXT,
+            started_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        INSERT INTO lab_sessions (
+            id, chapter, current_step, started_at, updated_at
+        ) VALUES ('old-session', '01', '01-observe', '2026-07-17', '2026-07-17');
+        """
+    )
+    old.commit()
+    old.close()
+
+    migrated = connect(tmp_path)
+    row = migrated.execute(
+        "SELECT workspace_key, workspace_ref, current_step FROM lab_sessions "
+        "WHERE id='old-session'"
+    ).fetchone()
+
+    assert tuple(row) == (None, None, "01-observe")
+    assert {
+        item[1] for item in migrated.execute("PRAGMA table_info(lab_sessions)")
+    } >= {"workspace_key", "workspace_ref"}
+
+
 def test_session_timer_pause_resume_steps_and_git_backed_pass_mirror(tmp_path) -> None:
     clock = Clock()
     store = LabSessionStore(connect(tmp_path), now=clock)
@@ -186,3 +227,30 @@ def test_terminal_session_states_cannot_be_resumed(tmp_path) -> None:
         store.resume("abandoned")
     with pytest.raises(LabSessionError, match="only an in-progress"):
         store.pause("abandoned")
+
+
+def test_canonical_chapter_allows_only_one_active_session(tmp_path) -> None:
+    store = LabSessionStore(connect(tmp_path))
+    store.start("01", current_step="01-observe", session_id="first")
+
+    with pytest.raises(LabSessionError, match="already has an active canonical"):
+        store.start("01", current_step="01-observe", session_id="second")
+
+    other = store.start("02", current_step="02-observe", session_id="other-chapter")
+    assert other["chapter"] == "02"
+    replay = store.start(
+        "01",
+        current_step="01-observe",
+        workspace_mode="replay",
+        workspace_key="a" * 32,
+        workspace_ref="chapter-01-start",
+        session_id="replay-one",
+    )
+    assert replay["workspace_mode"] == "replay"
+
+    store.pause("first")
+    with pytest.raises(LabSessionError, match="already has an active canonical"):
+        store.start("01", current_step="01-observe", session_id="third")
+
+    store.transition("first", "abandoned")
+    assert store.start("01", current_step="01-observe", session_id="fourth")["id"] == "fourth"

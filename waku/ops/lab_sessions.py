@@ -30,6 +30,11 @@ class LabSessionStore:
     A ``passed`` row is only a mirror of caller-supplied Git authority. The
     store requires both a final commit and learner completion ref, but it does
     not create or validate either one.
+
+    At most one canonical session per chapter may be active (in_progress,
+    paused, or proof_ready): canonical sessions share the chapter workspace,
+    so two live ones could restore or complete under each other's terminal.
+    Replay sessions are exempt because each owns an isolated workspace.
     """
 
     def __init__(
@@ -47,26 +52,53 @@ class LabSessionStore:
         *,
         current_step: str,
         workspace_mode: str = "canonical",
+        workspace_key: str | None = None,
+        workspace_ref: str | None = None,
         base_commit: str | None = None,
         session_id: str | None = None,
     ) -> dict[str, Any]:
         _required("chapter", chapter)
         _required("current_step", current_step)
         _required("workspace_mode", workspace_mode)
+        if workspace_mode not in {"canonical", "replay"}:
+            raise LabSessionError("workspace mode must be canonical or replay")
+        if workspace_mode == "canonical" and (workspace_key or workspace_ref):
+            raise LabSessionError("canonical sessions cannot claim a replay workspace")
+        if workspace_mode == "replay":
+            _required("replay workspace key", workspace_key or "")
+            _required("replay workspace ref", workspace_ref or "")
+        if workspace_mode == "canonical":
+            active = self.conn.execute(
+                """
+                SELECT id, status FROM lab_sessions
+                WHERE chapter=? AND workspace_mode='canonical'
+                  AND status IN ('in_progress', 'paused', 'proof_ready')
+                ORDER BY started_at, id LIMIT 1
+                """,
+                (chapter,),
+            ).fetchone()
+            if active is not None:
+                raise LabSessionError(
+                    f"chapter {chapter} already has an active canonical lab session "
+                    f"{active['id']} ({active['status']}); resume it or abandon it first"
+                )
         identifier = session_id or str(uuid.uuid4())
         timestamp = self._timestamp()
         try:
             self.conn.execute(
                 """
                 INSERT INTO lab_sessions (
-                    id, chapter, workspace_mode, current_step, status,
+                    id, chapter, workspace_mode, workspace_key, workspace_ref,
+                    current_step, status,
                     timer_seconds, timer_started_at, base_commit, started_at, updated_at
-                ) VALUES (?, ?, ?, ?, 'in_progress', 0, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, 'in_progress', 0, ?, ?, ?, ?)
                 """,
                 (
                     identifier,
                     chapter,
                     workspace_mode,
+                    workspace_key,
+                    workspace_ref,
                     current_step,
                     timestamp,
                     base_commit,
@@ -80,7 +112,13 @@ class LabSessionStore:
             identifier,
             "session_started",
             current_step,
-            {"chapter": chapter, "workspace_mode": workspace_mode, "base_commit": base_commit},
+            {
+                "chapter": chapter,
+                "workspace_mode": workspace_mode,
+                "workspace_key": workspace_key,
+                "workspace_ref": workspace_ref,
+                "base_commit": base_commit,
+            },
             timestamp,
         )
         self.conn.commit()

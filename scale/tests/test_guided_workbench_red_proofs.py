@@ -10,9 +10,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -33,13 +30,6 @@ def test_curriculum_labs_reference_five_step_manifests() -> None:
         assert len(step_ids) == len(set(step_ids))
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "the dashboard declares command-run lab APIs only; no guided editor or "
-        "interactive PTY API contract is declared"
-    ),
-)
 def test_dashboard_declares_editor_and_pty_workbench_apis() -> None:
     backend = "\n".join(
         path.read_text() for path in sorted((ROOT / "waku/ops").glob("*.py"))

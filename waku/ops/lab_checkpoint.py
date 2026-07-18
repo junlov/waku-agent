@@ -1,4 +1,4 @@
-"""Safe Git checkpoints, confirmed restores, and isolated chapter replay."""
+"""Safe Git checkpoints, confirmed restores, and standalone chapter replay."""
 
 from __future__ import annotations
 
@@ -20,6 +20,10 @@ from waku.ops.workspace_policy import (
 )
 
 CHECKPOINT_PREFIX = "refs/waku/checkpoints/"
+REPLAY_KEY = re.compile(r"[a-f0-9]{32}")
+GIT_TIMEOUT_SECONDS = 120
+GIT_CLONE_TIMEOUT_SECONDS = 600
+MAX_RESTORE_DIFF_BYTES = 512 * 1024
 
 
 class CheckpointError(RuntimeError):
@@ -114,17 +118,29 @@ class GitCheckpointManager:
     def _prepare_restore_locked(self, ref: str) -> dict[str, Any]:
         target = self._resolve_checkpoint(ref)
         restorable = self._restorable_paths(target)
-        worktree_diff = self._git(
-            "diff", "--binary", "--no-ext-diff", target, "--", *restorable,
-        ).stdout if restorable else ""
-        index_diff = self._git(
-            "diff", "--cached", "--binary", "--no-ext-diff", target, "--", *restorable,
-        ).stdout if restorable else ""
+        worktree_diff, worktree_truncated = (
+            self._capped_diff("diff", "--binary", "--no-ext-diff", target, "--", *restorable)
+            if restorable
+            else ("", False)
+        )
+        index_diff, index_truncated = (
+            self._capped_diff(
+                "diff", "--cached", "--binary", "--no-ext-diff", target, "--", *restorable
+            )
+            if restorable
+            else ("", False)
+        )
+        truncated = worktree_truncated or index_truncated
         diff = "Index replacement:\n" + index_diff + "\nWorktree replacement:\n" + worktree_diff
         untracked = self._untracked_paths()
         if untracked:
             diff += "\nNonignored untracked paths that restore would remove:\n"
             diff += "".join(f"?? {path}\n" for path in untracked)
+        if truncated:
+            diff += (
+                f"\n... diff truncated at {MAX_RESTORE_DIFF_BYTES} bytes per section; "
+                "the restore scope is unchanged ...\n"
+            )
         fingerprint = self._fingerprint()
         token = hashlib.sha256(f"{ref}\0{target}\0{fingerprint}".encode()).hexdigest()
         return {
@@ -133,6 +149,7 @@ class GitCheckpointManager:
             "diff": diff,
             "index_diff": index_diff,
             "worktree_diff": worktree_diff,
+            "diff_truncated": truncated,
             "token": token,
             "fingerprint": fingerprint,
             "untracked": untracked,
@@ -199,19 +216,19 @@ class GitCheckpointManager:
         worktrees_root: Path | None = None,
         timeout: int = 600,
     ) -> dict[str, Any]:
-        """Run a passed chapter from its learner tag in a disposable external worktree."""
+        """Run a passed chapter from its learner tag in a disposable standalone clone."""
         chapter_name = sanitize_name(chapter)
         tag = f"learner/chapter-{chapter_name}-passed"
         commit = self._git("rev-parse", "--verify", f"refs/tags/{tag}^{{commit}}").stdout.strip()
         parent = (worktrees_root or Path(tempfile.gettempdir())).resolve()
         parent.mkdir(parents=True, exist_ok=True)
-        worktree = Path(tempfile.mkdtemp(prefix=f"waku-replay-{chapter_name}-", dir=parent))
-        worktree.rmdir()
+        checkout = Path(tempfile.mkdtemp(prefix=f"waku-replay-{chapter_name}-", dir=parent))
+        checkout.rmdir()
         try:
-            self._git("worktree", "add", "--detach", str(worktree), commit)
+            self._clone_standalone(checkout, commit)
             result = subprocess.run(
                 command,
-                cwd=worktree,
+                cwd=checkout,
                 text=True,
                 capture_output=True,
                 timeout=timeout,
@@ -224,11 +241,194 @@ class GitCheckpointManager:
                 "exit_code": result.returncode,
                 "stdout": result.stdout,
                 "stderr": result.stderr,
-                "workspace": str(worktree),
+                "workspace": str(checkout),
             }
         finally:
-            self._git("worktree", "remove", "--force", str(worktree), check=False)
-            shutil.rmtree(worktree, ignore_errors=True)
+            shutil.rmtree(checkout, ignore_errors=True)
+
+    def create_replay_checkout(
+        self,
+        *,
+        chapter: str,
+        session_id: str,
+        checkpoint_ref: str,
+        checkouts_root: Path,
+    ) -> dict[str, str]:
+        """Create a persistent standalone clone detached at the lab start ref."""
+        chapter_name = sanitize_name(chapter)
+        expected_ref = f"chapter-{chapter_name}-start"
+        if checkpoint_ref != expected_ref:
+            raise CheckpointError(f"replay checkpoint must be exactly {expected_ref}")
+        root = self._validate_replay_root(checkouts_root)
+        key = self.replay_workspace_key(chapter_name, session_id)
+        workspace = root / key
+        if workspace.exists() or workspace.is_symlink():
+            raise CheckpointError("replay workspace identity already exists")
+        commit = self._git(
+            "rev-parse", "--verify", f"refs/tags/{checkpoint_ref}^{{commit}}"
+        ).stdout.strip()
+        with workspace_mutation_lock(self.repository):
+            try:
+                self._clone_standalone(workspace, commit)
+                self.validate_replay_checkout(
+                    workspace_key=key,
+                    checkpoint_ref=checkpoint_ref,
+                    base_commit=commit,
+                    checkouts_root=root,
+                )
+            except BaseException:
+                shutil.rmtree(workspace, ignore_errors=True)
+                raise
+        return {
+            "workspace_key": key,
+            "workspace": str(workspace),
+            "checkpoint_ref": checkpoint_ref,
+            "commit_oid": commit,
+        }
+
+    @staticmethod
+    def replay_workspace_key(chapter: str, session_id: str) -> str:
+        """Derive an opaque stable identity without exposing a learner session ID."""
+        chapter_name = sanitize_name(chapter)
+        return hashlib.sha256(f"{chapter_name}\0{session_id}".encode()).hexdigest()[:32]
+
+    def validate_replay_checkout(
+        self,
+        *,
+        workspace_key: str,
+        checkpoint_ref: str,
+        base_commit: str,
+        checkouts_root: Path,
+    ) -> Path:
+        """Resolve a stored opaque identity only when it is an isolated clone."""
+        if not isinstance(workspace_key, str) or REPLAY_KEY.fullmatch(workspace_key) is None:
+            raise CheckpointError("replay workspace key is invalid")
+        root = self._validate_replay_root(checkouts_root)
+        workspace = root / workspace_key
+        if workspace.is_symlink():
+            raise CheckpointError("replay workspace must not be a symbolic link")
+        if not workspace.is_dir():
+            raise CheckpointError("replay workspace is missing")
+        git_dir = workspace / ".git"
+        if git_dir.is_symlink() or not git_dir.is_dir():
+            raise CheckpointError("replay workspace is not a standalone Git checkout")
+        expected_ref = f"chapter-{sanitize_name(checkpoint_ref.removeprefix('chapter-').removesuffix('-start'))}-start"
+        if checkpoint_ref != expected_ref:
+            raise CheckpointError("replay workspace ref is invalid")
+        recorded_ref = self._git(
+            "rev-parse", "--verify", f"refs/tags/{checkpoint_ref}^{{commit}}"
+        ).stdout.strip()
+        if recorded_ref != base_commit:
+            raise CheckpointError("replay checkpoint ref no longer matches its recorded commit")
+        actual_common = self._resolved_git_path(workspace, "--git-common-dir")
+        expected_common = self._resolved_git_path(self.repository, "--git-common-dir")
+        if actual_common != git_dir.resolve() or actual_common == expected_common:
+            raise CheckpointError("replay workspace is not an independent Git checkout")
+        top = self._git_in(workspace, "rev-parse", "--show-toplevel").stdout.strip()
+        if Path(top).resolve() != workspace.resolve():
+            raise CheckpointError("replay workspace has an unexpected Git root")
+        if self._git_in(
+            workspace, "cat-file", "-e", f"{base_commit}^{{commit}}", check=False
+        ).returncode:
+            raise CheckpointError("replay workspace is missing its recorded base commit")
+        if self._git_in(workspace, "remote").stdout.strip():
+            raise CheckpointError("replay workspace must not retain a canonical Git remote")
+        if (git_dir / "objects/info/alternates").exists():
+            raise CheckpointError("replay workspace must not share canonical Git objects")
+        return workspace
+
+    def remove_replay_checkout(
+        self,
+        *,
+        workspace_key: str,
+        checkpoint_ref: str,
+        base_commit: str,
+        checkouts_root: Path,
+    ) -> Path:
+        """Remove only a replay checkout already validated against its authority."""
+        workspace = self.validate_replay_checkout(
+            workspace_key=workspace_key,
+            checkpoint_ref=checkpoint_ref,
+            base_commit=base_commit,
+            checkouts_root=checkouts_root,
+        )
+        shutil.rmtree(workspace, ignore_errors=True)
+        return workspace
+
+    def _clone_standalone(self, checkout: Path, commit: str) -> None:
+        """Clone objects without hardlinks/alternates and remove the source remote."""
+        with tempfile.TemporaryDirectory(prefix="waku-empty-git-template-") as template:
+            clone = self._git(
+                "clone",
+                "--no-local",
+                "--no-hardlinks",
+                "--no-checkout",
+                f"--template={template}",
+                str(self.repository),
+                str(checkout),
+                check=False,
+            )
+        if clone.returncode:
+            detail = clone.stderr.strip() or clone.stdout.strip() or "Git clone failed"
+            raise CheckpointError(detail)
+        try:
+            self._git_in(checkout, "checkout", "--detach", commit)
+            self._git_in(checkout, "remote", "remove", "origin")
+            self._git_in(checkout, "config", "user.name", "Waku Replay Learner")
+            self._git_in(checkout, "config", "user.email", "waku-replay@localhost")
+        except BaseException:
+            shutil.rmtree(checkout, ignore_errors=True)
+            raise
+
+    def _validate_replay_root(self, value: Path) -> Path:
+        raw = Path(value).expanduser()
+        if raw.is_symlink():
+            raise CheckpointError("replay checkout root must not be a symbolic link")
+        root = raw.resolve()
+        repository = self.repository.resolve()
+        if root == Path(root.anchor):
+            raise CheckpointError("replay checkout root must not be a filesystem root")
+        if root == repository or root.is_relative_to(repository) or repository.is_relative_to(root):
+            raise CheckpointError(
+                "replay checkouts must be external to the canonical workspace"
+            )
+        root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        return root
+
+    @staticmethod
+    def _resolved_git_path(repository: Path, argument: str) -> Path:
+        result = GitCheckpointManager._git_in(
+            repository, "rev-parse", argument, check=False
+        )
+        if result.returncode or not result.stdout.strip():
+            raise CheckpointError("replay workspace is not a valid Git checkout")
+        value = Path(result.stdout.strip())
+        return (value if value.is_absolute() else repository / value).resolve()
+
+    @staticmethod
+    def _git_in(
+        repository: Path,
+        *args: str,
+        check: bool = True,
+        timeout: float = GIT_TIMEOUT_SECONDS,
+    ) -> subprocess.CompletedProcess[str]:
+        try:
+            result = subprocess.run(
+                ["git", *args],
+                cwd=repository,
+                text=True,
+                capture_output=True,
+                check=False,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as error:
+            raise CheckpointError(
+                f"Git command timed out after {timeout:g}s: git {args[0]}"
+            ) from error
+        if check and result.returncode:
+            detail = result.stderr.strip() or result.stdout.strip() or "Git command failed"
+            raise CheckpointError(detail)
+        return result
 
     def _resolve_checkpoint(self, ref: str) -> str:
         if not ref.startswith(CHECKPOINT_PREFIX):
@@ -313,11 +513,38 @@ class GitCheckpointManager:
         )
         return env
 
+    def _capped_diff(
+        self, *args: str, limit: int = MAX_RESTORE_DIFF_BYTES
+    ) -> tuple[str, bool]:
+        """Run one diff into a spill file, bounding memory, runtime, and output."""
+        with tempfile.TemporaryFile(prefix="waku-diff-") as spill:
+            try:
+                result = subprocess.run(
+                    ["git", *args],
+                    cwd=self.repository,
+                    stdout=spill,
+                    stderr=subprocess.PIPE,
+                    timeout=GIT_TIMEOUT_SECONDS,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired as error:
+                raise CheckpointError(
+                    f"Git command timed out after {GIT_TIMEOUT_SECONDS}s: git {args[0]}"
+                ) from error
+            if result.returncode:
+                detail = result.stderr.decode(errors="replace").strip() or "Git command failed"
+                raise CheckpointError(detail)
+            size = spill.tell()
+            spill.seek(0)
+            data = spill.read(limit)
+        return data.decode("utf-8", errors="replace"), size > limit
+
     def _git(
         self,
         *args: str,
         env: dict[str, str] | None = None,
         check: bool = True,
+        timeout: float = GIT_TIMEOUT_SECONDS,
     ) -> subprocess.CompletedProcess[str]:
         try:
             return subprocess.run(
@@ -327,7 +554,12 @@ class GitCheckpointManager:
                 text=True,
                 capture_output=True,
                 check=check,
+                timeout=timeout,
             )
+        except subprocess.TimeoutExpired as error:
+            raise CheckpointError(
+                f"Git command timed out after {timeout:g}s: git {args[0]}"
+            ) from error
         except subprocess.CalledProcessError as error:
             message = error.stderr.strip() or error.stdout.strip() or "Git command failed"
             raise CheckpointError(message) from error

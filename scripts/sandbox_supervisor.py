@@ -389,6 +389,9 @@ class Supervisor:
         self.bundle = Path(os.getenv("WAKU_TRAINING_BUNDLE", "/seed/waku-training.bundle"))
         self.workspace = Path(os.getenv("WAKU_WORKSPACE", "/workspace"))
         self.runtime = Path(os.getenv("WAKU_RUNTIME", "/var/lib/waku"))
+        self.replays = Path(
+            os.getenv("WAKU_LAB_REPLAYS", str(self.runtime / "lab-replays"))
+        )
         self.checkpoint = Path(
             os.getenv("WAKU_CHECKPOINT", str(self.runtime / "checkpoints" / "last-good"))
         )
@@ -405,6 +408,9 @@ class Supervisor:
             runtime=self.runtime,
         )
         checkpoint = self.checkpoint.expanduser().resolve()
+        if self.replays.expanduser().is_symlink():
+            raise RuntimeError("replay checkout root must not be a symbolic link")
+        replays = self.replays.expanduser().resolve()
         if checkpoint == Path(checkpoint.anchor):
             raise RuntimeError(f"checkpoint must not be a filesystem root: {checkpoint}")
         for name in ("seed", "workspace"):
@@ -415,10 +421,19 @@ class Supervisor:
                 )
         if checkpoint == resolved["runtime"] or not checkpoint.is_relative_to(resolved["runtime"]):
             raise RuntimeError("checkpoint must be an isolated descendant of runtime")
+        if replays == resolved["runtime"] or not replays.is_relative_to(resolved["runtime"]):
+            raise RuntimeError("replay checkouts must be an isolated descendant of runtime")
+        if (
+            replays == checkpoint
+            or replays.is_relative_to(checkpoint)
+            or checkpoint.is_relative_to(replays)
+        ):
+            raise RuntimeError("replay checkouts and checkpoint must not overlap")
         self.seed = resolved["seed"]
         self.workspace = resolved["workspace"]
         self.runtime = resolved["runtime"]
         self.checkpoint = checkpoint
+        self.replays = replays
 
     def launch(self) -> None:
         env = os.environ.copy()
@@ -508,6 +523,8 @@ class Supervisor:
             raise RuntimeError(f"sanitized training bundle missing at {self.bundle}")
         verify_bundle_metadata(self.bundle)
         self.runtime.mkdir(parents=True, exist_ok=True)
+        self.replays.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.replays.chmod(0o700)
         workspace_result = seed_or_upgrade_workspace(
             self.bundle, self.workspace, self.runtime,
         )

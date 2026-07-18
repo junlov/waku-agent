@@ -10,7 +10,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     WAKU_SANDBOX=1 \
     WAKU_SEED=/seed \
     WAKU_WORKSPACE=/workspace \
-    WAKU_RUNTIME=/var/lib/waku
+    WAKU_RUNTIME=/var/lib/waku \
+    WAKU_LAB_REPLAYS=/var/lib/waku/lab-replays
 
 WORKDIR /seed
 

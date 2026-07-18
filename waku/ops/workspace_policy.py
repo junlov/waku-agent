@@ -21,6 +21,10 @@ _THREAD_LOCKS: dict[Path, threading.RLock] = {}
 _THREAD_LOCKS_GUARD = threading.Lock()
 _LOCK_STATE = threading.local()
 
+
+class WorkspaceMutationBusy(RuntimeError):
+    """Raised when a caller requests the mutation lease without waiting."""
+
 PROTECTED_GITIGNORE_PATTERNS = (
     ".git/",
     ".env",
@@ -83,13 +87,19 @@ def validate_isolated_paths(**paths: Path) -> dict[str, Path]:
 
 
 def _advisory_lock_path(repository: Path) -> Path:
-    result = subprocess.run(
-        ["git", "rev-parse", "--git-path", "waku-workspace.lock"],
-        cwd=repository,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--git-path", "waku-workspace.lock"],
+            cwd=repository,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError(
+            f"workspace mutation lock probe timed out: {repository}"
+        ) from error
     if result.returncode:
         raise RuntimeError(f"workspace mutation lock requires a Git repository: {repository}")
     path = Path(result.stdout.strip())
@@ -97,19 +107,26 @@ def _advisory_lock_path(repository: Path) -> Path:
 
 
 @contextmanager
-def workspace_mutation_lock(repository: Path) -> Iterator[None]:
+def workspace_mutation_lock(repository: Path, *, blocking: bool = True) -> Iterator[None]:
     """Serialize workspace writers across threads and cooperating processes."""
     root = repository.resolve()
     with _THREAD_LOCKS_GUARD:
         thread_lock = _THREAD_LOCKS.setdefault(root, threading.RLock())
-    with thread_lock:
+    if not thread_lock.acquire(blocking=blocking):
+        raise WorkspaceMutationBusy(f"workspace is busy: {root}")
+    try:
         held = getattr(_LOCK_STATE, "held", {})
         depth, handle = held.get(root, (0, None))
         if depth == 0:
             lock_path = _advisory_lock_path(root)
             lock_path.parent.mkdir(parents=True, exist_ok=True)
             handle = lock_path.open("a+")
-            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            lock_flags = fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB)
+            try:
+                fcntl.flock(handle.fileno(), lock_flags)
+            except BlockingIOError as exc:
+                handle.close()
+                raise WorkspaceMutationBusy(f"workspace is busy: {root}") from exc
         held[root] = (depth + 1, handle)
         _LOCK_STATE.held = held
         try:
@@ -122,3 +139,5 @@ def workspace_mutation_lock(repository: Path) -> Iterator[None]:
                 del held[root]
             else:
                 held[root] = (depth - 1, handle)
+    finally:
+        thread_lock.release()
