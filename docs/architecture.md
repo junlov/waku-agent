@@ -61,8 +61,8 @@ flowchart TB
 - **Consolidation is batched** ("after N chats"), asynchronous to the reply path,
   and loss-safe: if the summarizer fails, the chat log stays unconsolidated.
 - **Deterministic evals and judge evals never mix.** One is a unit test, the other
-  is a scored opinion. The release gate requires 100% of the first and a threshold
-  on the second.
+  is a scored opinion. The release gate always requires 100% of the first and,
+  when the active provider is keyed, a passing threshold on the second.
 - **Every layer has a boring default and a documented upgrade** — FTS5 → pgvector,
   mock calendar → Google Calendar, JSONL → Phoenix/Langfuse. The default is always
   zero-signup.

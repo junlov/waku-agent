@@ -230,8 +230,8 @@ you > when am I meeting Alex?
 **2. Deterministic eval vs LLM-as-judge.** *"Did it create the right calendar event?"*
 is a unit test — 0 or 1, no model judges it (`make eval`). *"Was the reply helpful?"*
 is a judged score with a threshold (`make eval-judge`). Conflating the two is the most
-common eval mistake; here they're separate suites you can diff. `make gate` runs both
-as a release gate.
+common eval mistake; here they're separate suites you can diff. `make gate` always
+runs deterministic evals and runs judge evals when the active provider has a key.
 
 ## Eval, tracing & catching bugs
 
@@ -240,7 +240,7 @@ Three commands, two kinds of eval — the LLM-Ops half of the system:
 ```bash
 make eval          # deterministic: "did the right tool fire?" — 0 or 1, no model judges it
 make eval-judge    # LLM-as-judge: "was the reply helpful?" — a scored %, needs a key
-make gate          # the release gate: deterministic must pass 100%, judge must clear threshold
+make gate          # deterministic must pass; keyed providers must also clear the judge threshold
 ```
 
 Deterministic tests are plain pytest in [`evals/deterministic/`](evals/deterministic); judged
@@ -278,10 +278,11 @@ Langfuse cloud speaks the same OTel toggle.
 ## Recording a clean demo
 
 ```bash
-python scripts/demo_seed.py            # resets .waku to a tidy, curated state
+python scripts/demo_seed.py            # rewrites .waku to a tidy, curated state
 ```
 
-It backs up your current `.waku` first, then seeds a few clean facts, one episode, and one
+Stop any running gateways first and run this only when you intend to replace the active demo
+state. It backs up your current `.waku` first, then seeds a few clean facts, one episode, and one
 event — Sergey's standing **Saturday 5 PM swim**. The chat log and traces start **empty**, so
 when you type live the Loop, traces, and Gateway inbox fill up in front of the viewer. The
 memory/Data/Tools tabs already have tidy content to explain. Edit the seed lists at the top of
@@ -406,7 +407,7 @@ The `waku` command is installed with the package; the `make` targets are equival
 | `make trace` | deep trace waterfalls (Phoenix) at localhost:6006 |
 | `make eval` | deterministic evals (0/1, no judge) |
 | `make eval-judge` | LLM-as-judge evals (scored %) |
-| `make gate` | the release gate — both eval suites must pass |
+| `make gate` | release gate — deterministic always; judge when the provider is keyed |
 
 ## Roadmap — on the whiteboard, coming soon
 

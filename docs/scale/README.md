@@ -88,7 +88,8 @@ claiming that the learner completed anything.
 
 ```bash
 git clone <your fork> && cd waku-agent && git checkout scale
-./scripts/session-init.sh   # env + fast checks + where you are (run every session)
+./init.sh                   # complete first-run setup + offline harness checks
+./scripts/session-init.sh   # shorter curriculum check-in for later sessions
 make check-00               # instrument check: needs no API key, ever
 ```
 

@@ -58,19 +58,9 @@ problems still existing; fixing ahead destroys the curriculum.
 
 ## Four pillars (architecture map)
 
-Waku demonstrates four pillars of a serious agent. File ↔ box:
-
-| Pillar | Where |
-|--------|--------|
-| **Harness** | `waku/gateway/` (cli, voice, telegram — gateways only move text); `waku/ops/` (dashboard `:7777`, tracing, release gate) |
-| **Loop** | `waku/loop/agent.py` (THE loop); `waku/loop/models.py` (providers, two wire formats); `waku/loop/sim_client.py` (fake model for load tests) |
-| **Memory** | `waku/memory/` semantic (FTS5) / episodic / procedural (SKILL.md) + `retrieval_gate.py` + `consolidation.py`; assembly in `waku/runtime/session.py` |
-| **Eval / LLM-Ops** | `evals/deterministic/` (0/1, pytest) vs `evals/judge/` (DeepEval, scored) — never mix; `waku/ops/release_gate` |
-
-Scale curriculum instruments live under `scale/` (loadgen + per-chapter tests) and
-`docs/scale/`. Runtime state lives in `.waku/` (gitignored: `state.db`, calendar,
-outbox, traces). SQLite is created on first run; no separate migration step for
-the default path.
+The code-accurate map is owned by `docs/architecture.md`; the user-facing
+overview is in `README.md`. Curriculum instruments live under `scale/` and
+`docs/scale/`.
 
 ## Commands (run/build/test)
 
@@ -80,32 +70,11 @@ Requires **Python ≥ 3.11** and **[uv](https://docs.astral.sh/uv/)**.
 ./init.sh                    # one-command: venv, deps, env template, harness + offline checks
 # or the curriculum session entrypoint (same core checks + current chapter):
 ./scripts/session-init.sh
-
-make run                     # chat CLI
-make dashboard               # http://localhost:7777
-make eval                    # deterministic evals (no API key)
-make eval-judge              # LLM-as-judge (needs a key)
-make gate                    # release gate: deterministic must pass; judge if keyed
-make lint                    # ruff on waku evals scale scripts
-make harness-test            # curriculum state / written-artifact tests
-make check                   # lint + offline evals + harness-test + current chapter
-make check-NN                # grade one chapter (e.g. make check-00, check-01)
-make scale-smoke             # chapter 0 load smoke on sim provider
 ```
 
-Install path used by `init.sh` / `session-init.sh`:
-
-```bash
-uv venv .venv
-uv pip install --python .venv/bin/python -e '.[eval,dev]'
-cp -n .env.example .env      # paste ONE provider key only if you want a live model
-```
-
-Load tests use the **`sim`** provider and need **no API key**. Real keys are only
-for playing with the assistant itself.
-
-Optional extras (see `pyproject.toml`): `[voice]`, `[telegram]`, `[tracing]`,
-`[mcp]`, `[supabase]`. No new core dependencies without discussion.
+The `Makefile` owns command definitions; `README.md` owns common product usage,
+and `docs/scale/README.md` owns the learner workflow. The loop stop conditions
+used by agents are listed below.
 
 **Frontend / Docker:** when present on a branch that has landed them, use
 `make frontend-install`, `make frontend-check`, `make docker-dashboard`, and
@@ -219,8 +188,9 @@ Work is done only when current-session evidence shows:
 ## Rules kept from upstream
 
 - **Never wipe `.waku` runtime data without asking first, every time.**
-  `scripts/demo_seed.py` requires `--yes` and explicit user approval immediately
-  before each run; permission never carries over.
+  `scripts/demo_seed.py` rewrites the active demo state after making a backup;
+  require explicit user approval immediately before each run. Permission never
+  carries over.
 - When a live bug is found, fix it **and** add a regression under
   `evals/deterministic/`.
 - No emojis in UI surfaces (dashboard, CLI, README prose).
